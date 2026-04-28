@@ -1,0 +1,1864 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ultimate Map Forge</title>
+  <style>
+    :root {
+      --ink: #191a17;
+      --muted: #6b6e66;
+      --paper: #edeae1;
+      --panel: #fbfaf4;
+      --panel-2: #f1efe6;
+      --line: #22241f;
+      --accent: #cc4f2f;
+      --accent-2: #227166;
+      --accent-3: #d59e24;
+      --blue: #315f86;
+      --shadow: rgba(25, 26, 23, 0.18);
+      --tile: 44px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      height: 100%;
+      margin: 0;
+    }
+
+    body {
+      overflow: hidden;
+      color: var(--ink);
+      background:
+        linear-gradient(90deg, rgba(34, 36, 31, 0.05) 1px, transparent 1px),
+        linear-gradient(0deg, rgba(34, 36, 31, 0.05) 1px, transparent 1px),
+        #d9d5c9;
+      background-size: 18px 18px;
+      font-family: "Avenir Next", "Gill Sans", "Trebuchet MS", sans-serif;
+      letter-spacing: 0;
+    }
+
+    button,
+    input,
+    select,
+    textarea {
+      font: inherit;
+    }
+
+    button {
+      min-height: 34px;
+      border: 2px solid var(--line);
+      color: var(--ink);
+      background: var(--panel);
+      box-shadow: 3px 3px 0 var(--line);
+      cursor: pointer;
+      font-weight: 900;
+      padding: 6px 10px;
+      transition: transform 100ms ease, box-shadow 100ms ease, background 100ms ease;
+    }
+
+    button:hover {
+      background: #fff0cd;
+      transform: translate(-1px, -1px);
+      box-shadow: 4px 4px 0 var(--line);
+    }
+
+    button:active,
+    button.active {
+      transform: translate(2px, 2px);
+      box-shadow: 1px 1px 0 var(--line);
+      background: var(--accent-3);
+    }
+
+    input,
+    select,
+    textarea {
+      width: 100%;
+      min-height: 34px;
+      border: 2px solid var(--line);
+      border-radius: 0;
+      color: var(--ink);
+      background: #fffdf8;
+      padding: 6px 8px;
+    }
+
+    textarea {
+      min-height: 180px;
+      resize: vertical;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    label {
+      display: grid;
+      gap: 5px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 900;
+      text-transform: uppercase;
+    }
+
+    .app {
+      display: grid;
+      grid-template-columns: 372px 1fr 328px;
+      height: 100%;
+      min-height: 0;
+    }
+
+    aside {
+      min-height: 0;
+      overflow: auto;
+      background: rgba(251, 250, 244, 0.96);
+    }
+
+    .left {
+      border-right: 3px solid var(--line);
+    }
+
+    .right {
+      border-left: 3px solid var(--line);
+    }
+
+    .inner {
+      padding: 16px;
+    }
+
+    h1 {
+      margin: 0;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 31px;
+      line-height: 0.95;
+    }
+
+    .subhead {
+      margin: 5px 0 14px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+      line-height: 1.35;
+    }
+
+    .section {
+      border-top: 2px solid var(--line);
+      margin-top: 14px;
+      padding-top: 12px;
+    }
+
+    .section-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 10px;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 18px;
+      font-weight: 900;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 9px;
+    }
+
+    .button-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 9px;
+      margin-top: 10px;
+    }
+
+    .button-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .primary {
+      color: #fffdf8;
+      background: var(--accent-2);
+    }
+
+    .danger {
+      color: #fffdf8;
+      background: var(--accent);
+    }
+
+    .tiny {
+      min-height: 29px;
+      padding: 4px 7px;
+      box-shadow: 2px 2px 0 var(--line);
+      font-size: 12px;
+    }
+
+    .tool-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+    }
+
+    .tool-grid button {
+      min-width: 0;
+      padding-inline: 4px;
+    }
+
+    .palette {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .tile-pick {
+      display: grid;
+      grid-template-columns: 42px minmax(0, 1fr);
+      gap: 7px;
+      align-items: center;
+      min-width: 0;
+      border: 2px solid var(--line);
+      background: #fffdf8;
+      padding: 5px;
+      box-shadow: 2px 2px 0 rgba(34, 36, 31, 0.15);
+      cursor: pointer;
+    }
+
+    .tile-pick.selected {
+      background: #ffe3a3;
+      box-shadow: 3px 3px 0 var(--line);
+    }
+
+    .tile-pick.none .tile-thumb {
+      border-style: dashed;
+      background:
+        linear-gradient(45deg, transparent 45%, rgba(204, 79, 47, 0.7) 46%, rgba(204, 79, 47, 0.7) 54%, transparent 55%),
+        #f8f6ed;
+    }
+
+    .tile-thumb {
+      display: grid;
+      place-items: center;
+      width: 42px;
+      height: 42px;
+      border: 1px solid rgba(34, 36, 31, 0.35);
+      background: #eee9dc;
+      overflow: hidden;
+      font-weight: 900;
+    }
+
+    .tile-thumb img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    .tile-name {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      color: var(--ink);
+      font-size: 12px;
+      font-weight: 900;
+      text-transform: none;
+    }
+
+    .hint {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      line-height: 1.35;
+    }
+
+    main {
+      min-width: 0;
+      min-height: 0;
+      display: grid;
+      grid-template-rows: auto 1fr;
+    }
+
+    .topbar {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 12px;
+      align-items: center;
+      border-bottom: 3px solid var(--line);
+      background: rgba(237, 234, 225, 0.95);
+      padding: 10px 12px;
+    }
+
+    .status {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .stage {
+      position: relative;
+      min-height: 0;
+      overflow: hidden;
+      background:
+        linear-gradient(135deg, rgba(25, 26, 23, 0.045) 25%, transparent 25%) 0 0 / 22px 22px,
+        linear-gradient(225deg, rgba(25, 26, 23, 0.035) 25%, transparent 25%) 0 0 / 22px 22px,
+        #e8e3d6;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      cursor: crosshair;
+      touch-action: none;
+    }
+
+    canvas.panning {
+      cursor: grabbing;
+    }
+
+    .hover-chip {
+      position: absolute;
+      left: 12px;
+      bottom: 12px;
+      z-index: 2;
+      border: 2px solid var(--line);
+      background: rgba(255, 253, 248, 0.94);
+      box-shadow: 3px 3px 0 var(--line);
+      padding: 6px 9px;
+      color: var(--ink);
+      font-size: 12px;
+      font-weight: 900;
+      pointer-events: none;
+    }
+
+    .door-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .door-row {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 7px;
+      align-items: center;
+      border: 2px solid var(--line);
+      background: #fffdf8;
+      padding: 7px;
+    }
+
+    .door-pos {
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .rule-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .rule-card {
+      border: 2px solid var(--line);
+      background: #fffdf8;
+      padding: 8px;
+      box-shadow: 2px 2px 0 rgba(34, 36, 31, 0.16);
+    }
+
+    .rule-head {
+      display: grid;
+      grid-template-columns: 1fr auto auto;
+      gap: 7px;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .rule-name {
+      color: var(--ink);
+      font-size: 12px;
+      font-weight: 900;
+      text-transform: none;
+    }
+
+    .rule-matrix {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 5px;
+      margin-bottom: 8px;
+    }
+
+    .rule-cell {
+      min-width: 0;
+      display: grid;
+      gap: 4px;
+    }
+
+    .rule-cell span {
+      color: var(--muted);
+      font-size: 9px;
+      font-weight: 900;
+    }
+
+    .rule-cell select {
+      min-height: 30px;
+      padding: 3px;
+      font-size: 11px;
+    }
+
+    .modal {
+      position: fixed;
+      inset: 0;
+      z-index: 20;
+      display: none;
+      background: rgba(25, 26, 23, 0.42);
+    }
+
+    .modal.open {
+      display: grid;
+      place-items: center;
+    }
+
+    .modal-panel {
+      width: min(980px, calc(100vw - 28px));
+      max-height: calc(100vh - 28px);
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr);
+      border: 3px solid var(--line);
+      background: var(--panel);
+      box-shadow: 8px 8px 0 var(--line);
+    }
+
+    .modal-head {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      align-items: center;
+      border-bottom: 3px solid var(--line);
+      padding: 10px 12px;
+    }
+
+    .modal-title {
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 21px;
+      font-weight: 900;
+    }
+
+    .modal-body {
+      min-height: 0;
+      overflow: auto;
+      padding: 12px;
+    }
+
+    .readout-grid {
+      display: grid;
+      grid-template-columns: repeat(var(--cols), 24px);
+      gap: 2px;
+      width: max-content;
+    }
+
+    .readout-cell {
+      display: grid;
+      place-items: center;
+      width: 24px;
+      height: 22px;
+      border: 1px solid rgba(34, 36, 31, 0.28);
+      color: #fffdf8;
+      background: var(--blue);
+      font-size: 11px;
+      font-weight: 900;
+    }
+
+    .readout-cell.none {
+      color: var(--muted);
+      background: #fffdf8;
+      border-style: dashed;
+    }
+
+    @media (max-width: 1120px) {
+      body {
+        overflow: auto;
+      }
+
+      .app {
+        grid-template-columns: 1fr;
+        height: auto;
+        min-height: 100%;
+      }
+
+      .left,
+      .right {
+        border: 0;
+        border-bottom: 3px solid var(--line);
+      }
+
+      main {
+        min-height: 76vh;
+      }
+    }
+
+    @media (max-width: 560px) {
+      .inner {
+        padding: 14px;
+      }
+
+      .grid-2,
+      .button-grid,
+      .palette {
+        grid-template-columns: 1fr;
+      }
+
+      .tool-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .topbar {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="left">
+      <div class="inner">
+        <h1>Ultimate Map Forge</h1>
+        <p class="subhead">Deterministic floor maps, live post-edit rules, direct tile and door authoring.</p>
+
+        <section class="section">
+          <div class="section-title">Map</div>
+          <div class="grid-2">
+            <label>Size <input id="sizeInput" type="number" min="3" step="1" value="18"></label>
+            <label>Bottom Cut <input id="cutInput" type="number" min="0" step="1" value="18"></label>
+            <label>ID <input id="idInput" type="text" value="1"></label>
+            <label>Type <input id="typeInput" type="text" value="N"></label>
+          </div>
+          <div class="button-grid">
+            <button class="primary" id="generateBtn">Generate NxN</button>
+            <button id="fitBtn">Fit View</button>
+          </div>
+        </section>
+
+        <section class="section">
+          <div class="section-title">Tools</div>
+          <div class="tool-grid" id="toolGrid">
+            <button data-tool="paint" class="active" title="Left-click hold to paint selected tile">Paint</button>
+            <button data-tool="erase" title="Paint none (-2)">Erase</button>
+            <button data-tool="replace" title="Replace every dragged-over source tile with selected tile">Replace</button>
+            <button data-tool="fill" title="Flood-fill matching connected tiles">Fill</button>
+            <button data-tool="rect" title="Drag a rectangle">Rect</button>
+            <button data-tool="line" title="Drag a line">Line</button>
+            <button data-tool="pick" title="Pick tile under cursor">Pick</button>
+            <button data-tool="door" title="Click tiles to toggle door points">Door</button>
+          </div>
+          <div class="button-grid">
+            <button id="undoBtn">Undo</button>
+            <button id="redoBtn">Redo</button>
+          </div>
+          <p class="hint">Middle mouse or Space + drag pans. Wheel zooms. Hover highlights the tile under the cursor.</p>
+        </section>
+
+        <section class="section">
+          <div class="section-title">Tile Brush</div>
+          <div class="palette" id="palette"></div>
+        </section>
+      </div>
+    </aside>
+
+    <main>
+      <div class="topbar">
+        <div class="status" id="status">Ready.</div>
+        <div class="button-row">
+          <button class="tiny" id="zoomOutBtn">-</button>
+          <button class="tiny" id="zoomInBtn">+</button>
+          <button class="tiny" id="readoutBtn">Grid</button>
+          <button class="tiny" id="importBtn">Import JSON</button>
+          <button class="tiny primary" id="exportBtn">Export JSON</button>
+        </div>
+      </div>
+      <div class="stage" id="stage">
+        <canvas id="canvas"></canvas>
+        <div class="hover-chip" id="hoverChip">No tile</div>
+      </div>
+    </main>
+
+    <aside class="right">
+      <div class="inner">
+        <section>
+          <div class="section-title">Doors</div>
+          <label>New Door Tag <input id="doorTagInput" type="text" value="door"></label>
+          <div class="button-grid">
+            <button id="clearDoorsBtn">Clear Doors</button>
+            <button id="exportCopyBtn">Copy JSON</button>
+          </div>
+          <div class="section">
+            <div class="door-list" id="doorList"></div>
+          </div>
+        </section>
+
+        <section class="section">
+          <div class="section-title">
+            Rules
+            <span class="button-row">
+              <button class="tiny" id="importRulesBtn">Import</button>
+              <button class="tiny" id="exportRulesBtn">Export</button>
+              <button class="tiny primary" id="addRuleBtn">Add</button>
+            </span>
+          </div>
+          <p class="hint">Rules run after every edit. A rule matches a 3x3 neighborhood on the source map and writes the center tile in the rendered map.</p>
+          <div class="rule-list" id="ruleList"></div>
+        </section>
+      </div>
+    </aside>
+  </div>
+
+  <div class="modal" id="readoutModal" aria-hidden="true">
+    <div class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="readoutTitle">
+      <div class="modal-head">
+        <div class="modal-title" id="readoutTitle">Final Map Grid</div>
+        <button id="closeReadoutBtn">Close</button>
+      </div>
+      <div class="modal-body">
+        <div class="readout-grid" id="readoutGrid"></div>
+      </div>
+    </div>
+  </div>
+
+  <input id="importInput" type="file" accept="application/json,.json" hidden>
+  <input id="importRulesInput" type="file" accept="application/json,.json" hidden>
+
+  <script>
+    const tiles = [
+      { id: 0, name: "Floor" },
+      { id: 1, name: "Left" },
+      { id: 2, name: "Right" },
+      { id: 3, name: "Diagonal" },
+      { id: 4, name: "Corner" },
+      { id: 5, name: "Square Pillar" },
+      { id: 6, name: "Triangle Pillar" },
+      { id: 7, name: "Edge" },
+      { id: 8, name: "Left Edge" },
+      { id: 9, name: "Right Edge" }
+    ];
+
+    const tileOptions = [{ id: -2, name: "None" }, ...tiles];
+    const ruleCells = ["TL", "TC", "TR", "CL", "CC", "CR", "BL", "BC", "BR"];
+    const storageKey = "ultimate-map-forge-v1";
+    const imageCache = new Map();
+
+    const state = {
+      sourceMap: [],
+      finalMap: [],
+      doors: [],
+      rules: [],
+      selectedTile: 0,
+      tool: "paint",
+      zoom: 1,
+      panX: 0,
+      panY: 0,
+      hover: null,
+      pointer: null,
+      preview: null,
+      spaceDown: false,
+      history: [],
+      future: [],
+      lastReplacementSource: null
+    };
+
+    const els = {
+      size: document.querySelector("#sizeInput"),
+      cut: document.querySelector("#cutInput"),
+      id: document.querySelector("#idInput"),
+      type: document.querySelector("#typeInput"),
+      generate: document.querySelector("#generateBtn"),
+      fit: document.querySelector("#fitBtn"),
+      zoomIn: document.querySelector("#zoomInBtn"),
+      zoomOut: document.querySelector("#zoomOutBtn"),
+      import: document.querySelector("#importBtn"),
+      importInput: document.querySelector("#importInput"),
+      export: document.querySelector("#exportBtn"),
+      exportCopy: document.querySelector("#exportCopyBtn"),
+      undo: document.querySelector("#undoBtn"),
+      redo: document.querySelector("#redoBtn"),
+      palette: document.querySelector("#palette"),
+      toolGrid: document.querySelector("#toolGrid"),
+      stage: document.querySelector("#stage"),
+      canvas: document.querySelector("#canvas"),
+      hoverChip: document.querySelector("#hoverChip"),
+      status: document.querySelector("#status"),
+      doorTag: document.querySelector("#doorTagInput"),
+      doorList: document.querySelector("#doorList"),
+      clearDoors: document.querySelector("#clearDoorsBtn"),
+      addRule: document.querySelector("#addRuleBtn"),
+      importRules: document.querySelector("#importRulesBtn"),
+      importRulesInput: document.querySelector("#importRulesInput"),
+      exportRules: document.querySelector("#exportRulesBtn"),
+      ruleList: document.querySelector("#ruleList"),
+      readout: document.querySelector("#readoutBtn"),
+      readoutModal: document.querySelector("#readoutModal"),
+      closeReadout: document.querySelector("#closeReadoutBtn"),
+      readoutGrid: document.querySelector("#readoutGrid")
+    };
+
+    const ctx = els.canvas.getContext("2d");
+
+    function clamp(value, min, max) {
+      return Math.max(min, Math.min(max, value));
+    }
+
+    function readSize() {
+      const size = Math.max(3, parseInt(els.size.value, 10) || 18);
+      const parsedCut = parseInt(els.cut.value, 10);
+      const cut = Math.max(0, Number.isInteger(parsedCut) ? parsedCut : size);
+      els.size.value = size;
+      els.cut.value = cut;
+      return { size, cut };
+    }
+
+    function cloneMap(map) {
+      return map.map((row) => row.slice());
+    }
+
+    function cloneDoors(doors) {
+      return doors.map((door) => ({ position: { ...door.position }, tag: door.tag }));
+    }
+
+    function snapshot() {
+      return {
+        sourceMap: cloneMap(state.sourceMap),
+        doors: cloneDoors(state.doors)
+      };
+    }
+
+    function restore(snap) {
+      state.sourceMap = cloneMap(snap.sourceMap);
+      state.doors = cloneDoors(snap.doors);
+      applyRulesAndRender();
+    }
+
+    function pushHistory() {
+      if (!state.sourceMap.length) return;
+      state.history.push(snapshot());
+      if (state.history.length > 80) state.history.shift();
+      state.future = [];
+    }
+
+    function saveLocal() {
+      const payload = {
+        size: els.size.value,
+        cut: els.cut.value,
+        id: els.id.value,
+        type: els.type.value,
+        doorTag: els.doorTag.value,
+        selectedTile: state.selectedTile,
+        tool: state.tool,
+        sourceMap: state.sourceMap,
+        doors: state.doors,
+        rules: state.rules
+      };
+      localStorage.setItem(storageKey, JSON.stringify(payload));
+    }
+
+    function loadLocal() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(storageKey) || "{}");
+        if (saved.size) els.size.value = saved.size;
+        if (saved.cut !== undefined) els.cut.value = saved.cut;
+        if (saved.id) els.id.value = saved.id;
+        if (saved.type) els.type.value = saved.type;
+        if (saved.doorTag) els.doorTag.value = saved.doorTag;
+        if (Number.isInteger(saved.selectedTile)) state.selectedTile = saved.selectedTile;
+        if (saved.tool) state.tool = saved.tool;
+        if (Array.isArray(saved.sourceMap) && saved.sourceMap.length) state.sourceMap = saved.sourceMap;
+        if (Array.isArray(saved.doors)) state.doors = saved.doors;
+        if (Array.isArray(saved.rules)) state.rules = saved.rules.map(normalizeRule);
+      } catch (error) {
+        localStorage.removeItem(storageKey);
+      }
+    }
+
+    function makeDefaultMap() {
+      const { size, cut } = readSize();
+      const map = [];
+      const threshold = (size - 1) * 2 - cut;
+      for (let y = 0; y < size; y++) {
+        const row = [];
+        for (let x = 0; x < size; x++) {
+          row.push(x + y > threshold ? -2 : 0);
+        }
+        map.push(row);
+      }
+      return map;
+    }
+
+    function generate() {
+      pushHistory();
+      state.sourceMap = makeDefaultMap();
+      state.doors = state.doors.filter((door) => tileAt(state.sourceMap, door.position.x, door.position.y) !== undefined);
+      applyRulesAndRender();
+      fitView();
+    }
+
+    function tileAt(map, x, y) {
+      if (y < 0 || y >= map.length || x < 0 || x >= map[0].length) return undefined;
+      return map[y][x];
+    }
+
+    function setTile(map, x, y, value) {
+      if (y < 0 || y >= map.length || x < 0 || x >= map[0].length) return false;
+      if (map[y][x] === value) return false;
+      map[y][x] = value;
+      return true;
+    }
+
+    function normalizeRule(rule = {}) {
+      return {
+        name: rule.name || "Rule",
+        enabled: rule.enabled !== false,
+        match: Array.from({ length: 9 }, (_, index) => {
+          const value = parseInt(rule.match?.[index], 10);
+          return Number.isInteger(value) && value >= -3 && value <= 9 ? value : -3;
+        }),
+        output: Number.isInteger(parseInt(rule.output, 10)) ? clamp(parseInt(rule.output, 10), -2, 9) : 0
+      };
+    }
+
+    function matchesRule(map, x, y, rule) {
+      for (let i = 0; i < 9; i++) {
+        const expected = rule.match[i];
+        if (expected === -3) continue;
+        const dx = (i % 3) - 1;
+        const dy = Math.floor(i / 3) - 1;
+        const actual = tileAt(map, x + dx, y + dy);
+        if (expected === -2) {
+          if (actual !== -2 && actual !== undefined) return false;
+        } else if (actual !== expected) {
+          return false;
+        }
+      }
+      return true;
+    }
+
+    function applyRules() {
+      let next = cloneMap(state.sourceMap);
+      for (const rawRule of state.rules) {
+        const rule = normalizeRule(rawRule);
+        if (!rule.enabled) continue;
+        const pass = cloneMap(next);
+        for (let y = 0; y < next.length; y++) {
+          for (let x = 0; x < next[y].length; x++) {
+            if (matchesRule(next, x, y, rule)) {
+              pass[y][x] = rule.output;
+            }
+          }
+        }
+        next = pass;
+      }
+      state.finalMap = next;
+    }
+
+    function applyRulesAndRender() {
+      applyRules();
+      saveLocal();
+      renderDoors();
+      renderRules();
+      renderReadout();
+      updateStatus();
+      draw();
+    }
+
+    function updateStatus() {
+      if (!state.finalMap.length) {
+        els.status.textContent = "No map.";
+        return;
+      }
+      const count = state.finalMap.flat().filter((id) => id !== -2).length;
+      const compressed = compressForExport();
+      els.status.textContent = `${state.finalMap[0].length}x${state.finalMap.length} source, ${compressed.size.x}x${compressed.size.y} export, ${count} visible tiles, ${state.doors.length} doors.`;
+    }
+
+    function tileLabel(id) {
+      if (id === -2) return "-2 None";
+      const tile = tiles.find((item) => item.id === id);
+      return tile ? `${tile.id} ${tile.name}` : String(id);
+    }
+
+    function preloadImages() {
+      return Promise.all(tiles.map((tile) => new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+          imageCache.set(tile.id, img);
+          resolve();
+        };
+        img.onerror = resolve;
+        img.src = `assets/${tile.id}.png`;
+      })));
+    }
+
+    function renderPalette() {
+      els.palette.innerHTML = "";
+      for (const tile of tileOptions) {
+        const item = document.createElement("button");
+        item.className = `tile-pick${tile.id === -2 ? " none" : ""}${state.selectedTile === tile.id ? " selected" : ""}`;
+        item.type = "button";
+        item.title = tile.id === -2 ? "None / delete tile" : tileLabel(tile.id);
+        item.addEventListener("click", () => {
+          selectTile(tile.id);
+        });
+
+        const thumb = document.createElement("span");
+        thumb.className = "tile-thumb";
+        if (tile.id === -2) {
+          thumb.textContent = "-2";
+        } else {
+          const img = document.createElement("img");
+          img.src = `assets/${tile.id}.png`;
+          img.alt = tileLabel(tile.id);
+          thumb.appendChild(img);
+        }
+
+        const name = document.createElement("span");
+        name.className = "tile-name";
+        name.textContent = tileLabel(tile.id);
+        item.append(thumb, name);
+        els.palette.appendChild(item);
+      }
+    }
+
+    function selectTile(id) {
+      state.selectedTile = id;
+      renderPalette();
+      saveLocal();
+    }
+
+    function isTypingTarget(target) {
+      return ["INPUT", "SELECT", "TEXTAREA"].includes(target?.tagName) || target?.isContentEditable;
+    }
+
+    function selectTool(tool) {
+      state.tool = tool;
+      els.toolGrid.querySelectorAll("button").forEach((button) => {
+        button.classList.toggle("active", button.dataset.tool === tool);
+      });
+      saveLocal();
+      draw();
+    }
+
+    function resizeCanvas(drawNow = true) {
+      const rect = els.stage.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      els.canvas.width = Math.max(1, Math.floor(rect.width * dpr));
+      els.canvas.height = Math.max(1, Math.floor(rect.height * dpr));
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      if (drawNow) draw();
+    }
+
+    function gridToWorld(x, y) {
+      const tileW = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--tile")) || 44;
+      const stepX = tileW * 0.5;
+      const stepY = tileW * 0.285;
+      return {
+        x: (x - y) * stepX,
+        y: (x + y) * stepY
+      };
+    }
+
+    function worldToGrid(wx, wy) {
+      const tileW = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--tile")) || 44;
+      const stepX = tileW * 0.5;
+      const stepY = tileW * 0.285;
+      const gx = (wy / stepY + wx / stepX) / 2;
+      const gy = (wy / stepY - wx / stepX) / 2;
+      return { x: Math.round(gx), y: Math.round(gy) };
+    }
+
+    function eventToGrid(event) {
+      const rect = els.canvas.getBoundingClientRect();
+      const sx = (event.clientX - rect.left - state.panX) / state.zoom;
+      const sy = (event.clientY - rect.top - state.panY) / state.zoom;
+      const tileW = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--tile")) || 44;
+      const grid = worldToGrid(sx, sy - tileW * 0.75);
+      if (!state.sourceMap.length) return null;
+      if (grid.y < 0 || grid.y >= state.sourceMap.length || grid.x < 0 || grid.x >= state.sourceMap[0].length) return null;
+      return grid;
+    }
+
+    function mapBounds() {
+      if (!state.sourceMap.length) return { minX: 0, minY: 0, maxX: 1, maxY: 1 };
+      const tileW = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--tile")) || 44;
+      const tileH = tileW;
+      let minX = Infinity;
+      let minY = Infinity;
+      let maxX = -Infinity;
+      let maxY = -Infinity;
+      for (let y = 0; y < state.sourceMap.length; y++) {
+        for (let x = 0; x < state.sourceMap[y].length; x++) {
+          const p = gridToWorld(x, y);
+          minX = Math.min(minX, p.x - tileW / 2);
+          minY = Math.min(minY, p.y);
+          maxX = Math.max(maxX, p.x + tileW / 2);
+          maxY = Math.max(maxY, p.y + tileH);
+        }
+      }
+      return { minX: minX - tileW, minY: minY - tileW * 0.4, maxX: maxX + tileW, maxY: maxY + tileW };
+    }
+
+    function fitView() {
+      if (!state.sourceMap.length) return;
+      resizeCanvas(false);
+      const rect = els.stage.getBoundingClientRect();
+      const bounds = mapBounds();
+      const w = bounds.maxX - bounds.minX;
+      const h = bounds.maxY - bounds.minY;
+      state.zoom = clamp(Math.min((rect.width - 42) / w, (rect.height - 42) / h), 0.08, 3);
+      state.panX = (rect.width - w * state.zoom) / 2 - bounds.minX * state.zoom;
+      state.panY = (rect.height - h * state.zoom) / 2 - bounds.minY * state.zoom;
+      draw();
+    }
+
+    function zoomAt(factor, cx = null, cy = null) {
+      const rect = els.canvas.getBoundingClientRect();
+      const x = cx ?? rect.width / 2;
+      const y = cy ?? rect.height / 2;
+      const beforeX = (x - state.panX) / state.zoom;
+      const beforeY = (y - state.panY) / state.zoom;
+      state.zoom = clamp(state.zoom * factor, 0.06, 5);
+      state.panX = x - beforeX * state.zoom;
+      state.panY = y - beforeY * state.zoom;
+      draw();
+    }
+
+    function drawTileOverlay(x, y, color = "#cc4f2f", mode = "hover") {
+      const tileW = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--tile")) || 44;
+      const id = tileAt(state.finalMap, x, y);
+      const p = gridToWorld(x, y);
+      const img = imageCache.get(id);
+
+      if (id === -2 || !img) {
+        drawIsoFootprint(
+          x,
+          y,
+          color,
+          mode === "hover" ? "rgba(255,227,126,0.18)" : "rgba(204,79,47,0.12)",
+          mode === "hover" ? 2.5 : 2,
+          id === -2,
+          id === -2 ? noneGuideYOffset(tileW) : 0
+        );
+        return;
+      }
+
+      ctx.save();
+      ctx.shadowColor = color;
+      ctx.shadowBlur = mode === "hover" ? 16 : 10;
+      ctx.filter = mode === "hover" ? "brightness(1.28) saturate(1.18)" : "brightness(1.14) saturate(1.1)";
+      ctx.globalAlpha = mode === "hover" ? 0.88 : 0.58;
+      ctx.drawImage(img, p.x - tileW / 2, p.y, tileW, tileW);
+      ctx.restore();
+
+      ctx.save();
+      ctx.lineWidth = mode === "hover" ? 2.5 : 2;
+      ctx.strokeStyle = color;
+      ctx.globalAlpha = mode === "hover" ? 0.95 : 0.65;
+      ctx.strokeRect(p.x - tileW / 2 + 1.5, p.y + 1.5, tileW - 3, tileW - 3);
+      ctx.restore();
+    }
+
+    function noneGuideYOffset(tileW) {
+      return tileW * 0.42;
+    }
+
+    function drawIsoFootprint(x, y, stroke = "rgba(34,36,31,0.2)", fill = null, lineWidth = 1, dashed = true, yOffset = 0) {
+      const tileW = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--tile")) || 44;
+      const stepY = tileW * 0.285;
+      const p = gridToWorld(x, y);
+      const py = p.y + yOffset;
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(p.x, py);
+      ctx.lineTo(p.x + tileW / 2, py + stepY);
+      ctx.lineTo(p.x, py + stepY * 2);
+      ctx.lineTo(p.x - tileW / 2, py + stepY);
+      ctx.closePath();
+      if (fill) {
+        ctx.fillStyle = fill;
+        ctx.fill();
+      }
+      ctx.strokeStyle = stroke;
+      ctx.lineWidth = lineWidth;
+      if (dashed) ctx.setLineDash([3.5, 4.5]);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function drawRuleChangeMark(x, y) {
+      const tileW = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--tile")) || 44;
+      const p = gridToWorld(x, y);
+      ctx.save();
+      ctx.fillStyle = "rgba(213,158,36,0.9)";
+      ctx.strokeStyle = "#22241f";
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(p.x + tileW * 0.28, p.y + tileW * 0.1);
+      ctx.lineTo(p.x + tileW * 0.44, p.y + tileW * 0.1);
+      ctx.lineTo(p.x + tileW * 0.44, p.y + tileW * 0.26);
+      ctx.lineTo(p.x + tileW * 0.28, p.y + tileW * 0.26);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function draw() {
+      const rect = els.stage.getBoundingClientRect();
+      ctx.clearRect(0, 0, rect.width, rect.height);
+      if (!state.finalMap.length) return;
+      const tileW = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--tile")) || 44;
+
+      ctx.save();
+      ctx.translate(state.panX, state.panY);
+      ctx.scale(state.zoom, state.zoom);
+
+      for (let y = 0; y < state.finalMap.length; y++) {
+        for (let x = 0; x < state.finalMap[y].length; x++) {
+          const id = state.finalMap[y][x];
+          const p = gridToWorld(x, y);
+          if (id === -2) {
+            drawIsoFootprint(x, y, "rgba(34,36,31,0.2)", null, 1, true, noneGuideYOffset(tileW));
+            continue;
+          }
+          const img = imageCache.get(id);
+          if (img) {
+            ctx.drawImage(img, p.x - tileW / 2, p.y, tileW, tileW);
+          } else {
+            ctx.fillStyle = "#315f86";
+            ctx.fillRect(p.x - tileW / 2, p.y, tileW, tileW);
+          }
+          if (state.sourceMap[y][x] !== id) {
+            drawRuleChangeMark(x, y);
+          }
+        }
+      }
+
+      for (const door of state.doors) {
+        const p = gridToWorld(door.position.x, door.position.y);
+        ctx.fillStyle = "#cc4f2f";
+        ctx.strokeStyle = "#22241f";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y + tileW * 0.28, tileW * 0.16, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+      }
+
+      if (state.preview) {
+        for (const cell of state.preview.cells) {
+          drawTileOverlay(cell.x, cell.y, "#cc4f2f", "preview");
+        }
+      }
+
+      if (state.hover) {
+        drawTileOverlay(state.hover.x, state.hover.y, "#cc4f2f", "hover");
+      }
+
+      ctx.restore();
+    }
+
+    function cellsInRect(a, b) {
+      const cells = [];
+      const minX = Math.min(a.x, b.x);
+      const maxX = Math.max(a.x, b.x);
+      const minY = Math.min(a.y, b.y);
+      const maxY = Math.max(a.y, b.y);
+      for (let y = minY; y <= maxY; y++) {
+        for (let x = minX; x <= maxX; x++) {
+          if (tileAt(state.sourceMap, x, y) !== undefined) cells.push({ x, y });
+        }
+      }
+      return cells;
+    }
+
+    function cellsInLine(a, b) {
+      const cells = [];
+      const dx = Math.abs(b.x - a.x);
+      const dy = Math.abs(b.y - a.y);
+      const sx = a.x < b.x ? 1 : -1;
+      const sy = a.y < b.y ? 1 : -1;
+      let err = dx - dy;
+      let x = a.x;
+      let y = a.y;
+      while (true) {
+        if (tileAt(state.sourceMap, x, y) !== undefined) cells.push({ x, y });
+        if (x === b.x && y === b.y) break;
+        const e2 = err * 2;
+        if (e2 > -dy) {
+          err -= dy;
+          x += sx;
+        }
+        if (e2 < dx) {
+          err += dx;
+          y += sy;
+        }
+      }
+      return cells;
+    }
+
+    function floodCells(start) {
+      const target = tileAt(state.sourceMap, start.x, start.y);
+      if (target === undefined) return [];
+      const seen = new Set();
+      const queue = [start];
+      const cells = [];
+      while (queue.length) {
+        const cell = queue.shift();
+        const key = `${cell.x},${cell.y}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        if (tileAt(state.sourceMap, cell.x, cell.y) !== target) continue;
+        cells.push(cell);
+        queue.push(
+          { x: cell.x + 1, y: cell.y },
+          { x: cell.x - 1, y: cell.y },
+          { x: cell.x, y: cell.y + 1 },
+          { x: cell.x, y: cell.y - 1 }
+        );
+      }
+      return cells;
+    }
+
+    function paintCells(cells, value) {
+      let changed = false;
+      for (const cell of cells) {
+        changed = setTile(state.sourceMap, cell.x, cell.y, value) || changed;
+      }
+      if (changed) applyRulesAndRender();
+      return changed;
+    }
+
+    function replaceTileAt(cell) {
+      const source = state.lastReplacementSource ?? tileAt(state.sourceMap, cell.x, cell.y);
+      state.lastReplacementSource = source;
+      if (source === state.selectedTile) return false;
+      const cells = [];
+      for (let y = 0; y < state.sourceMap.length; y++) {
+        for (let x = 0; x < state.sourceMap[y].length; x++) {
+          if (state.sourceMap[y][x] === source) cells.push({ x, y });
+        }
+      }
+      return paintCells(cells, state.selectedTile);
+    }
+
+    function toggleDoor(cell) {
+      const index = state.doors.findIndex((door) => door.position.x === cell.x && door.position.y === cell.y);
+      if (index >= 0) {
+        state.doors.splice(index, 1);
+      } else {
+        state.doors.push({ position: { x: cell.x, y: cell.y }, tag: els.doorTag.value.trim() || "door" });
+      }
+      applyRulesAndRender();
+    }
+
+    function startPointer(event) {
+      const cell = eventToGrid(event);
+      const wantsPan = event.button === 1 || state.spaceDown;
+      state.pointer = {
+        id: event.pointerId,
+        mode: wantsPan ? "pan" : "edit",
+        startClientX: event.clientX,
+        startClientY: event.clientY,
+        startPanX: state.panX,
+        startPanY: state.panY,
+        startCell: cell,
+        lastKey: "",
+        changed: false
+      };
+      els.canvas.setPointerCapture(event.pointerId);
+      if (wantsPan) {
+        els.canvas.classList.add("panning");
+        return;
+      }
+      if (!cell) return;
+      pushHistory();
+      state.lastReplacementSource = null;
+      if (state.tool === "paint") state.pointer.changed = paintCells([cell], state.selectedTile);
+      if (state.tool === "erase") state.pointer.changed = paintCells([cell], -2);
+      if (state.tool === "replace") state.pointer.changed = replaceTileAt(cell);
+      if (state.tool === "fill") {
+        state.pointer.changed = paintCells(floodCells(cell), state.selectedTile);
+      }
+      if (state.tool === "pick") {
+        state.selectedTile = tileAt(state.sourceMap, cell.x, cell.y);
+        renderPalette();
+      }
+      if (state.tool === "door") {
+        toggleDoor(cell);
+        state.pointer.changed = true;
+      }
+      updatePreview(cell);
+    }
+
+    function movePointer(event) {
+      const cell = eventToGrid(event);
+      state.hover = cell;
+      if (cell) {
+        els.hoverChip.textContent = `x ${cell.x}, y ${cell.y} | source ${tileLabel(tileAt(state.sourceMap, cell.x, cell.y))} | final ${tileLabel(tileAt(state.finalMap, cell.x, cell.y))}`;
+      } else {
+        els.hoverChip.textContent = "No tile";
+      }
+
+      if (!state.pointer) {
+        draw();
+        return;
+      }
+
+      if (state.pointer.mode === "pan") {
+        state.panX = state.pointer.startPanX + event.clientX - state.pointer.startClientX;
+        state.panY = state.pointer.startPanY + event.clientY - state.pointer.startClientY;
+        draw();
+        return;
+      }
+
+      if (!cell) {
+        draw();
+        return;
+      }
+
+      if (state.tool === "paint" || state.tool === "erase") {
+        const key = `${cell.x},${cell.y}`;
+        if (key !== state.pointer.lastKey) {
+          state.pointer.lastKey = key;
+          state.pointer.changed = paintCells([cell], state.tool === "erase" ? -2 : state.selectedTile) || state.pointer.changed;
+        }
+      } else if (state.tool === "replace") {
+        state.pointer.changed = replaceTileAt(cell) || state.pointer.changed;
+      } else {
+        updatePreview(cell);
+      }
+    }
+
+    function endPointer(event) {
+      if (!state.pointer) return;
+      const cell = eventToGrid(event);
+      if (state.pointer.mode === "edit" && cell) {
+        if (state.tool === "rect") {
+          state.pointer.changed = paintCells(cellsInRect(state.pointer.startCell, cell), state.selectedTile) || state.pointer.changed;
+        }
+        if (state.tool === "line") {
+          state.pointer.changed = paintCells(cellsInLine(state.pointer.startCell, cell), state.selectedTile) || state.pointer.changed;
+        }
+      }
+      if (!state.pointer.changed && state.history.length) state.history.pop();
+      state.pointer = null;
+      state.preview = null;
+      state.lastReplacementSource = null;
+      els.canvas.classList.remove("panning");
+      try {
+        els.canvas.releasePointerCapture(event.pointerId);
+      } catch (error) {
+        // Pointer may already be released by the browser.
+      }
+      applyRulesAndRender();
+    }
+
+    function updatePreview(cell) {
+      if (!state.pointer?.startCell || !cell) {
+        state.preview = null;
+      } else if (state.tool === "rect") {
+        state.preview = { cells: cellsInRect(state.pointer.startCell, cell) };
+      } else if (state.tool === "line") {
+        state.preview = { cells: cellsInLine(state.pointer.startCell, cell) };
+      } else {
+        state.preview = null;
+      }
+      draw();
+    }
+
+    function undo() {
+      if (!state.history.length) return;
+      state.future.push(snapshot());
+      restore(state.history.pop());
+    }
+
+    function redo() {
+      if (!state.future.length) return;
+      state.history.push(snapshot());
+      restore(state.future.pop());
+    }
+
+    function renderDoors() {
+      els.doorList.innerHTML = "";
+      if (!state.doors.length) {
+        const empty = document.createElement("div");
+        empty.className = "hint";
+        empty.textContent = "No door points.";
+        els.doorList.appendChild(empty);
+        return;
+      }
+      state.doors.forEach((door, index) => {
+        const row = document.createElement("div");
+        row.className = "door-row";
+        const pos = document.createElement("div");
+        pos.className = "door-pos";
+        pos.textContent = `${door.position.x},${door.position.y}`;
+        const tag = document.createElement("input");
+        tag.value = door.tag;
+        tag.addEventListener("input", () => {
+          door.tag = tag.value;
+          saveLocal();
+        });
+        const remove = document.createElement("button");
+        remove.className = "tiny danger";
+        remove.textContent = "X";
+        remove.addEventListener("click", () => {
+          pushHistory();
+          state.doors.splice(index, 1);
+          applyRulesAndRender();
+        });
+        row.append(pos, tag, remove);
+        els.doorList.appendChild(row);
+      });
+    }
+
+    function buildTileSelect(value, includeAny = false) {
+      const select = document.createElement("select");
+      if (includeAny) {
+        const any = document.createElement("option");
+        any.value = "-3";
+        any.textContent = "Any";
+        select.appendChild(any);
+      }
+      for (const tile of tileOptions) {
+        const option = document.createElement("option");
+        option.value = String(tile.id);
+        option.textContent = tile.id === -2 ? "-2 None" : `${tile.id} ${tile.name}`;
+        select.appendChild(option);
+      }
+      select.value = String(value);
+      return select;
+    }
+
+    function renderRules() {
+      els.ruleList.innerHTML = "";
+      if (!state.rules.length) {
+        const empty = document.createElement("div");
+        empty.className = "hint";
+        empty.textContent = "No rules. Add one when you want the rendered map to update after edits.";
+        els.ruleList.appendChild(empty);
+        return;
+      }
+      state.rules.forEach((rawRule, index) => {
+        const rule = normalizeRule(rawRule);
+        state.rules[index] = rule;
+        const card = document.createElement("div");
+        card.className = "rule-card";
+
+        const head = document.createElement("div");
+        head.className = "rule-head";
+        const name = document.createElement("input");
+        name.className = "rule-name";
+        name.value = rule.name;
+        name.addEventListener("input", () => {
+          rule.name = name.value;
+          saveLocal();
+        });
+        const enabled = document.createElement("button");
+        enabled.className = `tiny${rule.enabled ? " active" : ""}`;
+        enabled.textContent = rule.enabled ? "On" : "Off";
+        enabled.addEventListener("click", () => {
+          rule.enabled = !rule.enabled;
+          applyRulesAndRender();
+        });
+        const remove = document.createElement("button");
+        remove.className = "tiny danger";
+        remove.textContent = "X";
+        remove.addEventListener("click", () => {
+          state.rules.splice(index, 1);
+          applyRulesAndRender();
+        });
+        head.append(name, enabled, remove);
+
+        const matrix = document.createElement("div");
+        matrix.className = "rule-matrix";
+        ruleCells.forEach((label, cellIndex) => {
+          const cell = document.createElement("label");
+          cell.className = "rule-cell";
+          const caption = document.createElement("span");
+          caption.textContent = label;
+          const select = buildTileSelect(rule.match[cellIndex], true);
+          select.addEventListener("change", () => {
+            rule.match[cellIndex] = parseInt(select.value, 10);
+            applyRulesAndRender();
+          });
+          cell.append(caption, select);
+          matrix.appendChild(cell);
+        });
+
+        const output = document.createElement("label");
+        output.textContent = "Output";
+        const outputSelect = buildTileSelect(rule.output, false);
+        outputSelect.addEventListener("change", () => {
+          rule.output = parseInt(outputSelect.value, 10);
+          applyRulesAndRender();
+        });
+        output.appendChild(outputSelect);
+
+        card.append(head, matrix, output);
+        els.ruleList.appendChild(card);
+      });
+    }
+
+    function addRule() {
+      state.rules.push(normalizeRule({
+        name: `Rule ${state.rules.length + 1}`,
+        match: [-3, -3, -3, -3, 0, -3, -3, -3, -3],
+        output: 0,
+        enabled: true
+      }));
+      applyRulesAndRender();
+    }
+
+    function rulesPayload() {
+      return {
+        schema: "ultimate-map-forge-rules/v1",
+        rules: state.rules.map((rule, index) => normalizeRule(rule, index))
+      };
+    }
+
+    function downloadRulesJson() {
+      const payload = rulesPayload();
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `map-rules-${els.type.value.trim() || "N"}.json`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+      els.status.textContent = `Exported ${payload.rules.length} rules.`;
+    }
+
+    function importRulesPayload(payload) {
+      const sourceRules = Array.isArray(payload) ? payload : payload?.rules;
+      if (!Array.isArray(sourceRules)) {
+        throw new Error("Rules JSON must be an array or include a rules array.");
+      }
+      state.rules = sourceRules.map((rule, index) => normalizeRule(rule, index));
+      applyRulesAndRender();
+      els.status.textContent = `Imported ${state.rules.length} rules.`;
+    }
+
+    function importRulesFile(file) {
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          importRulesPayload(JSON.parse(String(reader.result || "{}")));
+        } catch (error) {
+          els.status.textContent = `Rule import failed: ${error.message}`;
+          alert(`Rule import failed: ${error.message}`);
+        } finally {
+          els.importRulesInput.value = "";
+        }
+      };
+      reader.onerror = () => {
+        els.status.textContent = "Rule import failed: Could not read file.";
+        els.importRulesInput.value = "";
+      };
+      reader.readAsText(file);
+    }
+
+    function findContentBounds(map, doors) {
+      let minX = Infinity;
+      let minY = Infinity;
+      let maxX = -Infinity;
+      let maxY = -Infinity;
+      for (let y = 0; y < map.length; y++) {
+        for (let x = 0; x < map[y].length; x++) {
+          if (map[y][x] !== -2) {
+            minX = Math.min(minX, x);
+            minY = Math.min(minY, y);
+            maxX = Math.max(maxX, x);
+            maxY = Math.max(maxY, y);
+          }
+        }
+      }
+      for (const door of doors) {
+        minX = Math.min(minX, door.position.x);
+        minY = Math.min(minY, door.position.y);
+        maxX = Math.max(maxX, door.position.x);
+        maxY = Math.max(maxY, door.position.y);
+      }
+      if (!Number.isFinite(minX)) {
+        minX = 0;
+        minY = 0;
+        maxX = 0;
+        maxY = 0;
+      }
+      return {
+        minX: minX - 1,
+        minY: minY - 1,
+        maxX: maxX + 1,
+        maxY: maxY + 1
+      };
+    }
+
+    function compressForExport() {
+      if (!state.finalMap.length) {
+        return { map: [], doors: [], size: { x: 0, y: 0 } };
+      }
+      const bounds = findContentBounds(state.finalMap, state.doors);
+      const width = bounds.maxX - bounds.minX + 1;
+      const height = bounds.maxY - bounds.minY + 1;
+      const map = [];
+      for (let y = bounds.minY; y <= bounds.maxY; y++) {
+        const row = [];
+        for (let x = bounds.minX; x <= bounds.maxX; x++) {
+          row.push(tileAt(state.finalMap, x, y) ?? -2);
+        }
+        map.push(row);
+      }
+      const doors = state.doors
+        .filter((door) => door.position.x >= bounds.minX && door.position.x <= bounds.maxX && door.position.y >= bounds.minY && door.position.y <= bounds.maxY)
+        .map((door) => ({
+          position: {
+            x: door.position.x - bounds.minX,
+            y: door.position.y - bounds.minY
+          },
+          tag: door.tag
+        }));
+      return { map, doors, size: { x: width, y: height } };
+    }
+
+    function exportPayload() {
+      const compressed = compressForExport();
+      return {
+        id: els.id.value.trim() || "1",
+        type: els.type.value.trim() || "N",
+        size: compressed.size,
+        map: compressed.map,
+        doors: compressed.doors
+      };
+    }
+
+    function downloadJson() {
+      const payload = exportPayload();
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `map-${payload.id}-${payload.type}.json`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    async function copyJson() {
+      const text = JSON.stringify(exportPayload(), null, 2);
+      await navigator.clipboard.writeText(text);
+      els.status.textContent = "Export JSON copied.";
+    }
+
+    function normalizeImportedMap(map) {
+      if (!Array.isArray(map) || !map.length || !Array.isArray(map[0]) || !map[0].length) {
+        throw new Error("Import JSON must include a non-empty 2D map array.");
+      }
+      const width = map[0].length;
+      return map.map((row, y) => {
+        if (!Array.isArray(row) || row.length !== width) {
+          throw new Error(`Map row ${y} must have exactly ${width} columns.`);
+        }
+        return row.map((value, x) => {
+          const id = parseInt(value, 10);
+          if (!Number.isInteger(id) || id < -2 || id > 9 || id === -1) {
+            throw new Error(`Invalid tile id at ${x},${y}. Use -2 or 0 through 9.`);
+          }
+          return id;
+        });
+      });
+    }
+
+    function normalizeImportedDoors(doors, width, height) {
+      if (doors === undefined) return [];
+      if (!Array.isArray(doors)) throw new Error("doors must be an array.");
+      return doors.map((door, index) => {
+        const x = parseInt(door?.position?.x, 10);
+        const y = parseInt(door?.position?.y, 10);
+        if (!Number.isInteger(x) || !Number.isInteger(y) || x < 0 || y < 0 || x >= width || y >= height) {
+          throw new Error(`Door ${index} has an invalid position.`);
+        }
+        return {
+          position: { x, y },
+          tag: String(door?.tag ?? "door")
+        };
+      });
+    }
+
+    function importPayload(payload) {
+      const importedMap = normalizeImportedMap(payload?.map);
+      const height = importedMap.length;
+      const width = importedMap[0].length;
+      const importedDoors = normalizeImportedDoors(payload?.doors, width, height);
+
+      pushHistory();
+      state.sourceMap = importedMap;
+      state.doors = importedDoors;
+      els.size.value = Math.max(width, height);
+      els.cut.value = Math.max(width, height);
+      if (payload?.id !== undefined) els.id.value = String(payload.id || "1");
+      if (payload?.type !== undefined) els.type.value = String(payload.type || "N");
+      applyRulesAndRender();
+      fitView();
+      els.status.textContent = `Imported ${width}x${height} map with ${state.doors.length} doors.`;
+    }
+
+    function importJsonFile(file) {
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          importPayload(JSON.parse(String(reader.result || "{}")));
+        } catch (error) {
+          els.status.textContent = `Import failed: ${error.message}`;
+          alert(`Import failed: ${error.message}`);
+        } finally {
+          els.importInput.value = "";
+        }
+      };
+      reader.onerror = () => {
+        els.status.textContent = "Import failed: Could not read file.";
+        els.importInput.value = "";
+      };
+      reader.readAsText(file);
+    }
+
+    function renderReadout() {
+      if (!state.finalMap.length) return;
+      els.readoutGrid.style.setProperty("--cols", state.finalMap[0].length);
+      els.readoutGrid.innerHTML = "";
+      for (const row of state.finalMap) {
+        for (const id of row) {
+          const cell = document.createElement("span");
+          cell.className = `readout-cell${id === -2 ? " none" : ""}`;
+          cell.textContent = id === -2 ? "." : id;
+          cell.title = tileLabel(id);
+          els.readoutGrid.appendChild(cell);
+        }
+      }
+    }
+
+    function bindEvents() {
+      els.generate.addEventListener("click", generate);
+      els.fit.addEventListener("click", fitView);
+      els.zoomIn.addEventListener("click", () => zoomAt(1.18));
+      els.zoomOut.addEventListener("click", () => zoomAt(0.84));
+      els.import.addEventListener("click", () => els.importInput.click());
+      els.importInput.addEventListener("change", () => importJsonFile(els.importInput.files[0]));
+      els.export.addEventListener("click", downloadJson);
+      els.exportCopy.addEventListener("click", () => copyJson().catch(() => {
+        els.status.textContent = "Clipboard permission failed.";
+      }));
+      els.undo.addEventListener("click", undo);
+      els.redo.addEventListener("click", redo);
+      els.clearDoors.addEventListener("click", () => {
+        pushHistory();
+        state.doors = [];
+        applyRulesAndRender();
+      });
+      els.addRule.addEventListener("click", addRule);
+      els.exportRules.addEventListener("click", downloadRulesJson);
+      els.importRules.addEventListener("click", () => els.importRulesInput.click());
+      els.importRulesInput.addEventListener("change", () => importRulesFile(els.importRulesInput.files[0]));
+      els.toolGrid.addEventListener("click", (event) => {
+        const button = event.target.closest("button[data-tool]");
+        if (button) selectTool(button.dataset.tool);
+      });
+      els.canvas.addEventListener("pointerdown", startPointer);
+      els.canvas.addEventListener("pointermove", movePointer);
+      els.canvas.addEventListener("pointerup", endPointer);
+      els.canvas.addEventListener("pointercancel", endPointer);
+      els.canvas.addEventListener("pointerleave", () => {
+        state.hover = null;
+        els.hoverChip.textContent = "No tile";
+        draw();
+      });
+      els.canvas.addEventListener("wheel", (event) => {
+        event.preventDefault();
+        const rect = els.canvas.getBoundingClientRect();
+        zoomAt(event.deltaY < 0 ? 1.08 : 0.92, event.clientX - rect.left, event.clientY - rect.top);
+      }, { passive: false });
+      window.addEventListener("keydown", (event) => {
+        if (!isTypingTarget(event.target) && !event.metaKey && !event.ctrlKey && !event.altKey) {
+          if (/^[0-9]$/.test(event.key)) {
+            selectTile(parseInt(event.key, 10));
+            event.preventDefault();
+            return;
+          }
+          if (event.key === "Delete" || event.key === "Backspace") {
+            selectTile(-2);
+            event.preventDefault();
+            return;
+          }
+        }
+        if (event.code === "Space") {
+          state.spaceDown = true;
+          event.preventDefault();
+        }
+        if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "z") {
+          event.preventDefault();
+          if (event.shiftKey) redo();
+          else undo();
+        }
+        if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "y") {
+          event.preventDefault();
+          redo();
+        }
+      });
+      window.addEventListener("keyup", (event) => {
+        if (event.code === "Space") state.spaceDown = false;
+      });
+      for (const input of [els.size, els.cut, els.id, els.type, els.doorTag]) {
+        input.addEventListener("input", saveLocal);
+      }
+      els.readout.addEventListener("click", () => {
+        els.readoutModal.classList.add("open");
+        els.readoutModal.setAttribute("aria-hidden", "false");
+      });
+      els.closeReadout.addEventListener("click", closeReadout);
+      els.readoutModal.addEventListener("click", (event) => {
+        if (event.target === els.readoutModal) closeReadout();
+      });
+      window.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") closeReadout();
+      });
+      const observer = new ResizeObserver(() => resizeCanvas());
+      observer.observe(els.stage);
+      window.addEventListener("resize", () => resizeCanvas());
+    }
+
+    function closeReadout() {
+      els.readoutModal.classList.remove("open");
+      els.readoutModal.setAttribute("aria-hidden", "true");
+    }
+
+    async function boot() {
+      loadLocal();
+      bindEvents();
+      renderPalette();
+      selectTool(state.tool);
+      await preloadImages();
+      resizeCanvas(false);
+      if (!state.sourceMap.length) {
+        state.sourceMap = makeDefaultMap();
+      }
+      applyRulesAndRender();
+      fitView();
+    }
+
+    boot();
+  </script>
+</body>
+</html>
