@@ -275,7 +275,7 @@ const state = {
   spaceDown: false, history: [], future: [],
   lastReplacementSource: null,
   // copy-paste
-  selection: null,   // { x1,y1,x2,y2 } grid coords (inclusive)
+  selections: null,  // array of { x1,y1,x2,y2 } grid coords (inclusive)
   clipboard: null,   // { cells: [{x,y,id}], w, h }  relative positions
   pasteMode: false,  // true while waiting for click-to-stamp
   // dirty-draw throttle
@@ -391,7 +391,7 @@ function generate() {
   pushHistory();
   state.sourceMap = makeDefaultMap();
   state.doors = state.doors.filter(d => tileAt(state.sourceMap, d.position.x, d.position.y) !== undefined);
-  state.selection = null;
+  state.selections = null;
   applyRulesAndRender();
   fitView();
 }
@@ -459,9 +459,11 @@ function updateStatus() {
   if (!state.finalMap.length) { els.status.textContent = "No map."; return; }
   const count = state.finalMap.flat().filter(id => id !== -2).length;
   const compressed = compressForExport();
-  const selInfo = state.selection
-    ? ` | 選択: ${Math.abs(state.selection.x2 - state.selection.x1)+1}x${Math.abs(state.selection.y2 - state.selection.y1)+1}`
-    : "";
+  let selInfo = "";
+  if (state.selections && state.selections.length) {
+    const bounds = getSelectionCells();
+    if (bounds) selInfo = ` | 選択: ${bounds.w}x${bounds.h} (${bounds.cells.length} tiles)`;
+  }
   const clipInfo = state.clipboard ? ` | クリップボード: ${state.clipboard.w}x${state.clipboard.h}` : "";
   els.status.textContent = `${state.finalMap[0].length}x${state.finalMap.length} source, ${compressed.size.x}x${compressed.size.y} export, ${count} visible tiles, ${state.doors.length} doors${selInfo}${clipInfo}.`;
 }
@@ -648,15 +650,17 @@ function drawRuleChangeMark(x, y) {
 
 // Draw selection rectangle in iso space
 function drawSelection() {
-  const sel = state.selection; if (!sel) return;
-  const x1 = Math.min(sel.x1, sel.x2), y1 = Math.min(sel.y1, sel.y2);
-  const x2 = Math.max(sel.x1, sel.x2), y2 = Math.max(sel.y1, sel.y2);
+  if (!state.selections) return;
   const tw = tileW();
-  for (let cy = y1; cy <= y2; cy++)
-    for (let cx = x1; cx <= x2; cx++) {
-      if (tileAt(state.sourceMap, cx, cy) === undefined) continue;
-      drawIsoFootprint(cx, cy, "#315f86", "rgba(49,95,134,0.10)", 2, false, noneGuideYOffset(tw));
-    }
+  for (const sel of state.selections) {
+    const x1 = Math.min(sel.x1, sel.x2), y1 = Math.min(sel.y1, sel.y2);
+    const x2 = Math.max(sel.x1, sel.x2), y2 = Math.max(sel.y1, sel.y2);
+    for (let cy = y1; cy <= y2; cy++)
+      for (let cx = x1; cx <= x2; cx++) {
+        if (tileAt(state.sourceMap, cx, cy) === undefined) continue;
+        drawIsoFootprint(cx, cy, "#315f86", "rgba(49,95,134,0.10)", 2, false, noneGuideYOffset(tw));
+      }
+  }
 }
 
 // Draw clipboard preview at hover (paste mode)
@@ -796,20 +800,33 @@ function toggleDoor(cell) {
 // ─── Copy / Paste ──────────────────────────────────────────────────────────
 
 function getSelectionCells() {
-  const sel = state.selection; if (!sel) return null;
-  const x1=Math.min(sel.x1,sel.x2), y1=Math.min(sel.y1,sel.y2);
-  const x2=Math.max(sel.x1,sel.x2), y2=Math.max(sel.y1,sel.y2);
-  return { x1,y1,x2,y2, w:x2-x1+1, h:y2-y1+1 };
+  if (!state.selections || !state.selections.length) return null;
+  let minX=Infinity, minY=Infinity, maxX=-Infinity, maxY=-Infinity;
+  const cellsMap = new Map();
+  for (const sel of state.selections) {
+    const x1 = Math.min(sel.x1, sel.x2), y1 = Math.min(sel.y1, sel.y2);
+    const x2 = Math.max(sel.x1, sel.x2), y2 = Math.max(sel.y1, sel.y2);
+    for (let y = y1; y <= y2; y++) {
+      for (let x = x1; x <= x2; x++) {
+        if (tileAt(state.sourceMap, x, y) !== undefined) {
+          minX = Math.min(minX, x); minY = Math.min(minY, y);
+          maxX = Math.max(maxX, x); maxY = Math.max(maxY, y);
+          cellsMap.set(`${x},${y}`, {x, y});
+        }
+      }
+    }
+  }
+  if (minX === Infinity) return null;
+  return { minX, minY, maxX, maxY, w: maxX-minX+1, h: maxY-minY+1, cells: Array.from(cellsMap.values()) };
 }
 
 function copySelection() {
   const bounds = getSelectionCells(); if (!bounds) { els.status.textContent = "コピーする選択範囲がありません。選択ツールで範囲を選択してください。"; return; }
   const cells = [];
-  for (let y = bounds.y1; y <= bounds.y2; y++)
-    for (let x = bounds.x1; x <= bounds.x2; x++) {
-      const id = tileAt(state.sourceMap, x, y);
-      if (id !== undefined) cells.push({ x: x-bounds.x1, y: y-bounds.y1, id });
-    }
+  for (const c of bounds.cells) {
+    const id = tileAt(state.sourceMap, c.x, c.y);
+    if (id !== undefined) cells.push({ x: c.x - bounds.minX, y: c.y - bounds.minY, id });
+  }
   state.clipboard = { cells, w: bounds.w, h: bounds.h };
   updateStatus();
   els.status.textContent = `コピー済: ${bounds.w}x${bounds.h} の範囲 (${cells.length} タイル)。Ctrl+V で貼り付け。`;
@@ -854,30 +871,41 @@ function startPointer(event) {
     return;
   }
 
+  const isSelectShortcut = event.ctrlKey || event.metaKey;
+  const currentTool = isSelectShortcut && !wantsPan ? "select" : state.tool;
+
   state.pointer = {
     id: event.pointerId, mode: wantsPan ? "pan" : "edit",
     startClientX: event.clientX, startClientY: event.clientY,
     startPanX: state.panX, startPanY: state.panY,
-    startCell: cell, lastKey: "", changed: false
+    startCell: cell, lastKey: "", changed: false,
+    tool: currentTool, activeSelection: null
   };
   els.canvas.setPointerCapture(event.pointerId);
 
   if (wantsPan) { els.canvas.classList.add("panning"); return; }
   if (!cell) return;
 
-  if (state.tool === "select") {
-    state.selection = { x1:cell.x, y1:cell.y, x2:cell.x, y2:cell.y };
+  if (currentTool === "select") {
+    const newSel = { x1:cell.x, y1:cell.y, x2:cell.x, y2:cell.y };
+    if (isSelectShortcut) {
+      if (!state.selections) state.selections = [];
+      state.selections.push(newSel);
+    } else {
+      state.selections = [newSel];
+    }
+    state.pointer.activeSelection = newSel;
     scheduleDraw(); return;
   }
 
   pushHistory();
   state.lastReplacementSource = null;
-  if (state.tool==="paint")   state.pointer.changed = paintCells([cell], state.selectedTile);
-  if (state.tool==="erase")   state.pointer.changed = paintCells([cell], -2);
-  if (state.tool==="replace") state.pointer.changed = replaceTileAt(cell);
-  if (state.tool==="fill")    state.pointer.changed = paintCells(floodCells(cell), state.selectedTile);
-  if (state.tool==="pick")    { state.selectedTile = tileAt(state.sourceMap,cell.x,cell.y); renderPalette(); }
-  if (state.tool==="door")    { toggleDoor(cell); state.pointer.changed = true; }
+  if (currentTool==="paint")   state.pointer.changed = paintCells([cell], state.selectedTile);
+  if (currentTool==="erase")   state.pointer.changed = paintCells([cell], -2);
+  if (currentTool==="replace") state.pointer.changed = replaceTileAt(cell);
+  if (currentTool==="fill")    state.pointer.changed = paintCells(floodCells(cell), state.selectedTile);
+  if (currentTool==="pick")    { state.selectedTile = tileAt(state.sourceMap,cell.x,cell.y); renderPalette(); }
+  if (currentTool==="door")    { toggleDoor(cell); state.pointer.changed = true; }
   updatePreview(cell);
 }
 
@@ -913,18 +941,23 @@ function movePointer(event) {
 
   if (!cell) { scheduleDraw(); return; }
 
-  if (state.tool === "select") {
-    if (state.selection) { state.selection.x2 = cell.x; state.selection.y2 = cell.y; }
+  const currentTool = state.pointer.tool;
+
+  if (currentTool === "select") {
+    if (state.pointer.activeSelection) { 
+      state.pointer.activeSelection.x2 = cell.x; 
+      state.pointer.activeSelection.y2 = cell.y; 
+    }
     scheduleDraw(); return;
   }
 
-  if (state.tool==="paint"||state.tool==="erase") {
+  if (currentTool==="paint"||currentTool==="erase") {
     const key = `${cell.x},${cell.y}`;
     if (key !== state.pointer.lastKey) {
       state.pointer.lastKey = key;
-      state.pointer.changed = paintCells([cell], state.tool==="erase" ? -2 : state.selectedTile) || state.pointer.changed;
+      state.pointer.changed = paintCells([cell], currentTool==="erase" ? -2 : state.selectedTile) || state.pointer.changed;
     }
-  } else if (state.tool==="replace") {
+  } else if (currentTool==="replace") {
     state.pointer.changed = replaceTileAt(cell) || state.pointer.changed;
   } else {
     updatePreview(cell);
@@ -934,26 +967,29 @@ function movePointer(event) {
 function endPointer(event) {
   if (!state.pointer) return;
   const cell = eventToGrid(event);
+  const currentTool = state.pointer.tool;
   if (state.pointer.mode === "edit" && cell) {
-    if (state.tool==="rect") state.pointer.changed = paintCells(cellsInRect(state.pointer.startCell,cell), state.selectedTile) || state.pointer.changed;
-    if (state.tool==="line") state.pointer.changed = paintCells(cellsInLine(state.pointer.startCell,cell), state.selectedTile) || state.pointer.changed;
-    if (state.tool==="select" && state.selection) {
-      state.selection.x2 = cell.x; state.selection.y2 = cell.y;
+    if (currentTool==="rect") state.pointer.changed = paintCells(cellsInRect(state.pointer.startCell,cell), state.selectedTile) || state.pointer.changed;
+    if (currentTool==="line") state.pointer.changed = paintCells(cellsInLine(state.pointer.startCell,cell), state.selectedTile) || state.pointer.changed;
+    if (currentTool==="select" && state.pointer.activeSelection) {
+      state.pointer.activeSelection.x2 = cell.x;
+      state.pointer.activeSelection.y2 = cell.y;
       updateStatus();
     }
   }
-  if (!state.pointer.changed && state.history.length && state.tool!=="select") state.history.pop();
+  if (!state.pointer.changed && state.history.length && currentTool!=="select") state.history.pop();
   state.pointer = null; state.preview = null; state.lastReplacementSource = null;
   els.canvas.classList.remove("panning");
   try { els.canvas.releasePointerCapture(event.pointerId); } catch {}
-  if (state.tool !== "select") applyRulesAndRender();
+  if (currentTool !== "select") applyRulesAndRender();
   else scheduleDraw();
 }
 
 function updatePreview(cell) {
+  const currentTool = state.pointer?.tool || state.tool;
   if (!state.pointer?.startCell || !cell) { state.preview = null; }
-  else if (state.tool==="rect") { state.preview = { cells: cellsInRect(state.pointer.startCell,cell) }; }
-  else if (state.tool==="line") { state.preview = { cells: cellsInLine(state.pointer.startCell,cell) }; }
+  else if (currentTool==="rect") { state.preview = { cells: cellsInRect(state.pointer.startCell,cell) }; }
+  else if (currentTool==="line") { state.preview = { cells: cellsInLine(state.pointer.startCell,cell) }; }
   else { state.preview = null; }
   scheduleDraw();
 }
@@ -1117,7 +1153,7 @@ function importPayload(payload) {
   els.size.value=Math.max(w,h); els.cut.value=Math.max(w,h);
   if(payload?.id!==undefined) els.id.value=String(payload.id||"1");
   if(payload?.type!==undefined) els.type.value=String(payload.type||"N");
-  state.selection=null;
+  state.selections=null;
   applyRulesAndRender(); fitView();
   els.status.textContent=`Imported ${w}x${h} map with ${state.doors.length} doors.`;
 }
@@ -1190,7 +1226,11 @@ function bindEvents() {
     if ((e.metaKey||e.ctrlKey) && e.key.toLowerCase()==="y") { e.preventDefault(); redo(); }
     if ((e.metaKey||e.ctrlKey) && e.key.toLowerCase()==="c" && !isTypingTarget(e.target)) { e.preventDefault(); copySelection(); }
     if ((e.metaKey||e.ctrlKey) && e.key.toLowerCase()==="v" && !isTypingTarget(e.target)) { e.preventDefault(); enterPasteMode(); }
-    if (e.key==="Escape") { if(state.pasteMode) exitPasteMode(); closeReadout(); }
+    if (e.key==="Escape") { 
+      if(state.pasteMode) exitPasteMode(); 
+      else if(state.selections) { state.selections=null; scheduleDraw(); updateStatus(); }
+      closeReadout(); 
+    }
   });
   window.addEventListener("keyup", e => { if(e.code==="Space") state.spaceDown=false; });
 
