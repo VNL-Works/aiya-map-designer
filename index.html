@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="en">
+<html lang="ja">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Ultimate Map Forge</title>
+  <title>アルティメット マップ フォージ</title>
   <style>
     :root {
       --ink: #191a17;
@@ -525,44 +525,44 @@
   <div class="app">
     <aside class="left">
       <div class="inner">
-        <h1>Ultimate Map Forge</h1>
-        <p class="subhead">Deterministic floor maps, live post-edit rules, direct tile and door authoring.</p>
+        <h1>アルティメット マップ フォージ</h1>
+        <p class="subhead">確定的フロアマップ、リアルタイム後編集ルール、タイルとドアの直接編集。</p>
 
         <section class="section">
-          <div class="section-title">Map</div>
+          <div class="section-title">マップ</div>
           <div class="grid-2">
-            <label>Size <input id="sizeInput" type="number" min="3" step="1" value="18"></label>
-            <label>Bottom Cut <input id="cutInput" type="number" min="0" step="1" value="18"></label>
+            <label>サイズ <input id="sizeInput" type="number" min="3" step="1" value="18"></label>
+            <label>下部カット <input id="cutInput" type="number" min="0" step="1" value="18"></label>
             <label>ID <input id="idInput" type="text" value="1"></label>
-            <label>Type <input id="typeInput" type="text" value="N"></label>
+            <label>タイプ <input id="typeInput" type="text" value="N"></label>
           </div>
           <div class="button-grid">
-            <button class="primary" id="generateBtn">Generate NxN</button>
-            <button id="fitBtn">Fit View</button>
+            <button class="primary" id="generateBtn">NxN 生成</button>
+            <button id="fitBtn">ビューに合わせる</button>
           </div>
         </section>
 
         <section class="section">
-          <div class="section-title">Tools</div>
+          <div class="section-title">ツール</div>
           <div class="tool-grid" id="toolGrid">
-            <button data-tool="paint" class="active" title="Left-click hold to paint selected tile">Paint</button>
-            <button data-tool="erase" title="Paint none (-2)">Erase</button>
-            <button data-tool="replace" title="Replace every dragged-over source tile with selected tile">Replace</button>
-            <button data-tool="fill" title="Flood-fill matching connected tiles">Fill</button>
-            <button data-tool="rect" title="Drag a rectangle">Rect</button>
-            <button data-tool="line" title="Drag a line">Line</button>
-            <button data-tool="pick" title="Pick tile under cursor">Pick</button>
-            <button data-tool="door" title="Click tiles to toggle door points">Door</button>
+            <button data-tool="paint" class="active" title="クリックホールドで選択タイルを描画">ペイント</button>
+            <button data-tool="erase" title="なし（-2）を描画">消去</button>
+            <button data-tool="replace" title="ドラッグしたソースタイルを選択タイルに置換">置換</button>
+            <button data-tool="fill" title="連続した一致タイルをフラッドフィル">塗りつぶし</button>
+            <button data-tool="rect" title="矩形をドラッグ">矩形</button>
+            <button data-tool="line" title="直線をドラッグ">直線</button>
+            <button data-tool="pick" title="カーソル下のタイルを選択">ピック</button>
+            <button data-tool="door" title="タイルをクリックしてドアポイントを切替">ドア</button>
           </div>
           <div class="button-grid">
-            <button id="undoBtn">Undo</button>
-            <button id="redoBtn">Redo</button>
+            <button id="undoBtn">元に戻す</button>
+            <button id="redoBtn">やり直す</button>
           </div>
-          <p class="hint">Middle mouse or Space + drag pans. Wheel zooms. Hover highlights the tile under the cursor.</p>
+          <p class="hint">中ボタンまたはスペース＋ドラッグでパン。ホイールでズーム。ホバーでカーソル下のタイルをハイライト。</p>
         </section>
 
         <section class="section">
-          <div class="section-title">Tile Brush</div>
+          <div class="section-title">タイルブラシ</div>
           <div class="palette" id="palette"></div>
         </section>
       </div>
@@ -570,29 +570,29 @@
 
     <main>
       <div class="topbar">
-        <div class="status" id="status">Ready.</div>
+        <div class="status" id="status">準備完了。</div>
         <div class="button-row">
           <button class="tiny" id="zoomOutBtn">-</button>
           <button class="tiny" id="zoomInBtn">+</button>
-          <button class="tiny" id="readoutBtn">Grid</button>
-          <button class="tiny" id="importBtn">Import JSON</button>
-          <button class="tiny primary" id="exportBtn">Export JSON</button>
+          <button class="tiny" id="readoutBtn">グリッド</button>
+          <button class="tiny" id="importBtn">JSON インポート</button>
+          <button class="tiny primary" id="exportBtn">JSON エクスポート</button>
         </div>
       </div>
       <div class="stage" id="stage">
         <canvas id="canvas"></canvas>
-        <div class="hover-chip" id="hoverChip">No tile</div>
+        <div class="hover-chip" id="hoverChip">タイルなし</div>
       </div>
     </main>
 
     <aside class="right">
       <div class="inner">
         <section>
-          <div class="section-title">Doors</div>
-          <label>New Door Tag <input id="doorTagInput" type="text" value="door"></label>
+          <div class="section-title">ドア</div>
+          <label>新しいドアタグ <input id="doorTagInput" type="text" value="door"></label>
           <div class="button-grid">
-            <button id="clearDoorsBtn">Clear Doors</button>
-            <button id="exportCopyBtn">Copy JSON</button>
+            <button id="clearDoorsBtn">ドアをクリア</button>
+            <button id="exportCopyBtn">JSON をコピー</button>
           </div>
           <div class="section">
             <div class="door-list" id="doorList"></div>
@@ -601,14 +601,14 @@
 
         <section class="section">
           <div class="section-title">
-            Rules
+            ルール
             <span class="button-row">
-              <button class="tiny" id="importRulesBtn">Import</button>
-              <button class="tiny" id="exportRulesBtn">Export</button>
-              <button class="tiny primary" id="addRuleBtn">Add</button>
+              <button class="tiny" id="importRulesBtn">インポート</button>
+              <button class="tiny" id="exportRulesBtn">エクスポート</button>
+              <button class="tiny primary" id="addRuleBtn">追加</button>
             </span>
           </div>
-          <p class="hint">Rules run after every edit. A rule matches a 3x3 neighborhood on the source map and writes the center tile in the rendered map.</p>
+          <p class="hint">ルールは編集のたびに実行されます。3x3の近傍をソースマップで照合し、レンダリングマップの中心タイルに出力を書き込みます。</p>
           <div class="rule-list" id="ruleList"></div>
         </section>
       </div>
@@ -618,8 +618,8 @@
   <div class="modal" id="readoutModal" aria-hidden="true">
     <div class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="readoutTitle">
       <div class="modal-head">
-        <div class="modal-title" id="readoutTitle">Final Map Grid</div>
-        <button id="closeReadoutBtn">Close</button>
+        <div class="modal-title" id="readoutTitle">最終マップグリッド</div>
+        <button id="closeReadoutBtn">閉じる</button>
       </div>
       <div class="modal-body">
         <div class="readout-grid" id="readoutGrid"></div>
@@ -1148,7 +1148,7 @@
         ctx.strokeStyle = "#22241f";
         ctx.lineWidth = 2;
         ctx.beginPath();
-        ctx.arc(p.x, p.y + tileW * 0.28, tileW * 0.16, 0, Math.PI * 2);
+        ctx.arc(p.x, p.y + tileW * 0.34, tileW * 0.16, 0, Math.PI * 2);
         ctx.fill();
         ctx.stroke();
       }
