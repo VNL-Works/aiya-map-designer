@@ -101,9 +101,9 @@
     .paste-banner { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); z-index: 3; border: 2px solid var(--line); background: #ffe3a3; box-shadow: 3px 3px 0 var(--line); padding: 6px 14px; font-size: 13px; font-weight: 900; pointer-events: none; display: none; white-space: nowrap; }
     .paste-banner.visible { display: block; }
 
-    .door-list { display: grid; gap: 8px; }
-    .door-row { display: grid; grid-template-columns: auto 1fr auto; gap: 7px; align-items: center; border: 2px solid var(--line); background: #fffdf8; padding: 7px; }
-    .door-pos { font-size: 12px; font-weight: 900; }
+    .point-list { display: grid; gap: 8px; }
+    .point-row { display: grid; grid-template-columns: auto 1fr auto; gap: 7px; align-items: center; border: 2px solid var(--line); background: #fffdf8; padding: 7px; }
+    .point-pos { font-size: 12px; font-weight: 900; }
 
     .rule-list  { display: grid; gap: 8px; }
     .rule-card  { border: 2px solid var(--line); background: #fffdf8; padding: 8px; box-shadow: 2px 2px 0 rgba(34,36,31,0.16); }
@@ -164,7 +164,7 @@
           <button data-tool="rect"    title="矩形をドラッグ">矩形</button>
           <button data-tool="line"    title="直線をドラッグ">直線</button>
           <button data-tool="pick"    title="カーソル下のタイルを選択">ピック</button>
-          <button data-tool="door"    title="タイルをクリックしてポイントを切替">ポイント</button>
+          <button data-tool="point"    title="タイルをクリックしてポイントを切替">ポイント</button>
           <button data-tool="select"  title="矩形選択 — Ctrl+C でコピー、Ctrl+V で貼り付け">選択</button>
         </div>
         <div class="button-grid">
@@ -204,13 +204,13 @@
     <div class="inner">
       <section>
         <div class="section-title">ポイント</div>
-        <label>新しいポイントタグ <input id="doorTagInput" type="text" value="point"></label>
+        <label>新しいポイントタグ <input id="pointTagInput" type="text" value="point"></label>
         <div class="button-grid">
-          <button id="clearDoorsBtn">ポイントクリア</button>
+          <button id="clearPointsBtn">ポイントクリア</button>
           <button id="exportCopyBtn">JSON をコピー</button>
         </div>
         <div class="section">
-          <div class="door-list" id="doorList"></div>
+          <div class="point-list" id="pointList"></div>
         </div>
       </section>
 
@@ -265,7 +265,7 @@ const storageKey  = "ultimate-map-forge-v1";
 const imageCache  = new Map();
 
 const state = {
-  sourceMap: [], finalMap: [], doors: [], rules: [],
+  sourceMap: [], finalMap: [], points: [], rules: [],
   selectedTile: 0, tool: "paint",
   zoom: 1, panX: 0, panY: 0,
   hover: null, pointer: null, preview: null,
@@ -304,9 +304,9 @@ const els = {
   hoverChip:        document.querySelector("#hoverChip"),
   pasteBanner:      document.querySelector("#pasteBanner"),
   status:           document.querySelector("#status"),
-  doorTag:          document.querySelector("#doorTagInput"),
-  doorList:         document.querySelector("#doorList"),
-  clearDoors:       document.querySelector("#clearDoorsBtn"),
+  pointTag:          document.querySelector("#pointTagInput"),
+  pointList:         document.querySelector("#pointList"),
+  clearPoints:       document.querySelector("#clearPointsBtn"),
   addRule:          document.querySelector("#addRuleBtn"),
   importRules:      document.querySelector("#importRulesBtn"),
   importRulesInput: document.querySelector("#importRulesInput"),
@@ -333,10 +333,10 @@ function readSize() {
 }
 
 function cloneMap(map)   { return map.map(r => r.slice()); }
-function cloneDoors(doors){ return doors.map(d => ({ position:{...d.position}, tag:d.tag })); }
+function clonePoints(points){ return points.map(d => ({ position:{...d.position}, tag:d.tag })); }
 
-function snapshot() { return { sourceMap: cloneMap(state.sourceMap), doors: cloneDoors(state.doors) }; }
-function restore(snap) { state.sourceMap = cloneMap(snap.sourceMap); state.doors = cloneDoors(snap.doors); applyRulesAndRender(); }
+function snapshot() { return { sourceMap: cloneMap(state.sourceMap), points: clonePoints(state.points) }; }
+function restore(snap) { state.sourceMap = cloneMap(snap.sourceMap); state.points = clonePoints(snap.points); applyRulesAndRender(); }
 
 function pushHistory() {
   if (!state.sourceMap.length) return;
@@ -351,9 +351,9 @@ function saveLocal() {
   const payload = {
     size: els.size.value, cut: els.cut.value,
     id: els.id.value, type: els.type.value,
-    doorTag: els.doorTag.value,
+    pointTag: els.pointTag.value,
     selectedTile: state.selectedTile, tool: state.tool,
-    sourceMap: state.sourceMap, doors: state.doors, rules: state.rules
+    sourceMap: state.sourceMap, points: state.points, rules: state.rules
   };
   localStorage.setItem(storageKey, JSON.stringify(payload));
 }
@@ -365,11 +365,11 @@ function loadLocal() {
     if (saved.cut  !== undefined) els.cut.value = saved.cut;
     if (saved.id)   els.id.value   = saved.id;
     if (saved.type) els.type.value = saved.type;
-    if (saved.doorTag) els.doorTag.value = saved.doorTag;
+    if (saved.pointTag) els.pointTag.value = saved.pointTag;
     if (Number.isInteger(saved.selectedTile)) state.selectedTile = saved.selectedTile;
     if (saved.tool) state.tool = saved.tool;
     if (Array.isArray(saved.sourceMap) && saved.sourceMap.length) state.sourceMap = saved.sourceMap;
-    if (Array.isArray(saved.doors)) state.doors = saved.doors;
+    if (Array.isArray(saved.points)) state.points = saved.points;
     if (Array.isArray(saved.rules)) state.rules = saved.rules.map(normalizeRule);
   } catch { localStorage.removeItem(storageKey); }
 }
@@ -387,7 +387,7 @@ function makeDefaultMap() {
 function generate() {
   pushHistory();
   state.sourceMap = makeDefaultMap();
-  state.doors = state.doors.filter(d => tileAt(state.sourceMap, d.position.x, d.position.y) !== undefined);
+  state.points = state.points.filter(d => tileAt(state.sourceMap, d.position.x, d.position.y) !== undefined);
   state.selections = null;
   applyRulesAndRender();
   fitView();
@@ -448,7 +448,7 @@ function applyRules() {
 function applyRulesAndRender() {
   applyRules();
   saveLocal();
-  renderDoors(); renderRules(); renderReadout(); updateStatus();
+  renderPoints(); renderRules(); renderReadout(); updateStatus();
   scheduleDraw();
 }
 
@@ -462,7 +462,7 @@ function updateStatus() {
     if (bounds) selInfo = ` | 選択: ${bounds.w}x${bounds.h} (${bounds.cells.length} tiles)`;
   }
   const clipInfo = state.clipboard ? ` | クリップボード: ${state.clipboard.w}x${state.clipboard.h}` : "";
-  els.status.textContent = `${state.finalMap[0].length}x${state.finalMap.length} source, ${compressed.size.x}x${compressed.size.y} export, ${count} visible tiles, ${state.doors.length} doors${selInfo}${clipInfo}.`;
+  els.status.textContent = `${state.finalMap[0].length}x${state.finalMap.length} source, ${compressed.size.x}x${compressed.size.y} export, ${count} visible tiles, ${state.points.length} points${selInfo}${clipInfo}.`;
 }
 
 function tileLabel(id) {
@@ -719,9 +719,9 @@ function draw() {
   // paste preview
   drawPastePreview();
 
-  // doors
-  for (const door of state.doors) {
-    const p = gridToWorld(door.position.x, door.position.y);
+  // points
+  for (const point of state.points) {
+    const p = gridToWorld(point.position.x, point.position.y);
     ctx.fillStyle = "#cc4f2f"; ctx.strokeStyle = "#22241f"; ctx.lineWidth = 2;
     ctx.beginPath(); ctx.arc(p.x, p.y + tw*0.55, tw*0.16, 0, Math.PI*2); ctx.fill(); ctx.stroke();
   }
@@ -787,10 +787,10 @@ function replaceTileAt(cell) {
   return paintCells(cells, state.selectedTile);
 }
 
-function toggleDoor(cell) {
-  const i = state.doors.findIndex(d => d.position.x===cell.x && d.position.y===cell.y);
-  if (i>=0) state.doors.splice(i,1);
-  else state.doors.push({ position:{x:cell.x,y:cell.y}, tag: els.doorTag.value.trim()||"door" });
+function togglePoint(cell) {
+  const i = state.points.findIndex(d => d.position.x===cell.x && d.position.y===cell.y);
+  if (i>=0) state.points.splice(i,1);
+  else state.points.push({ position:{x:cell.x,y:cell.y}, tag: els.pointTag.value.trim()||"point" });
   applyRulesAndRender();
 }
 
@@ -902,7 +902,7 @@ function startPointer(event) {
   if (currentTool==="replace") state.pointer.changed = replaceTileAt(cell);
   if (currentTool==="fill")    state.pointer.changed = paintCells(floodCells(cell), state.selectedTile);
   if (currentTool==="pick")    { state.selectedTile = tileAt(state.sourceMap,cell.x,cell.y); renderPalette(); }
-  if (currentTool==="door")    { toggleDoor(cell); state.pointer.changed = true; }
+  if (currentTool==="point")    { togglePoint(cell); state.pointer.changed = true; }
   updatePreview(cell);
 }
 
@@ -996,21 +996,21 @@ function updatePreview(cell) {
 function undo() { if (!state.history.length) return; state.future.push(snapshot()); restore(state.history.pop()); }
 function redo() { if (!state.future.length)  return; state.history.push(snapshot()); restore(state.future.pop()); }
 
-// ─── Door UI ───────────────────────────────────────────────────────────────
+// ─── Point UI ───────────────────────────────────────────────────────────────
 
-function renderDoors() {
-  els.doorList.innerHTML = "";
-  if (!state.doors.length) {
-    const e = document.createElement("div"); e.className="hint"; e.textContent="ドアなどに使うポイントがない"; els.doorList.appendChild(e); return;
+function renderPoints() {
+  els.pointList.innerHTML = "";
+  if (!state.points.length) {
+    const e = document.createElement("div"); e.className="hint"; e.textContent="ドアなどに使うポイントがない"; els.pointList.appendChild(e); return;
   }
-  state.doors.forEach((door,i) => {
-    const row=document.createElement("div"); row.className="door-row";
-    const pos=document.createElement("div"); pos.className="door-pos"; pos.textContent=`${door.position.x},${door.position.y}`;
-    const tag=document.createElement("input"); tag.value=door.tag;
-    tag.addEventListener("input",()=>{ door.tag=tag.value; saveLocal(); });
+  state.points.forEach((point,i) => {
+    const row=document.createElement("div"); row.className="point-row";
+    const pos=document.createElement("div"); pos.className="point-pos"; pos.textContent=`${point.position.x},${point.position.y}`;
+    const tag=document.createElement("input"); tag.value=point.tag;
+    tag.addEventListener("input",()=>{ point.tag=tag.value; saveLocal(); });
     const rm=document.createElement("button"); rm.className="tiny danger"; rm.textContent="X";
-    rm.addEventListener("click",()=>{ pushHistory(); state.doors.splice(i,1); applyRulesAndRender(); });
-    row.append(pos,tag,rm); els.doorList.appendChild(row);
+    rm.addEventListener("click",()=>{ pushHistory(); state.points.splice(i,1); applyRulesAndRender(); });
+    row.append(pos,tag,rm); els.pointList.appendChild(row);
   });
 }
 
@@ -1089,26 +1089,26 @@ function importRulesFile(file) {
   reader.readAsText(file);
 }
 
-function findContentBounds(map, doors) {
+function findContentBounds(map, points) {
   let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
   for (let y=0;y<map.length;y++) for(let x=0;x<map[y].length;x++) if(map[y][x]!==-2){ minX=Math.min(minX,x);minY=Math.min(minY,y);maxX=Math.max(maxX,x);maxY=Math.max(maxY,y); }
-  for(const d of doors){ minX=Math.min(minX,d.position.x);minY=Math.min(minY,d.position.y);maxX=Math.max(maxX,d.position.x);maxY=Math.max(maxY,d.position.y); }
+  for(const d of points){ minX=Math.min(minX,d.position.x);minY=Math.min(minY,d.position.y);maxX=Math.max(maxX,d.position.x);maxY=Math.max(maxY,d.position.y); }
   if(!Number.isFinite(minX)){minX=0;minY=0;maxX=0;maxY=0;}
   return { minX:minX-1,minY:minY-1,maxX:maxX+1,maxY:maxY+1 };
 }
 
 function compressForExport() {
-  if (!state.finalMap.length) return { map:[],doors:[],size:{x:0,y:0} };
-  const b=findContentBounds(state.finalMap,state.doors);
+  if (!state.finalMap.length) return { map:[],points:[],size:{x:0,y:0} };
+  const b=findContentBounds(state.finalMap,state.points);
   const map=[];
   for(let y=b.minY;y<=b.maxY;y++){ const row=[]; for(let x=b.minX;x<=b.maxX;x++) row.push(tileAt(state.finalMap,x,y)??-2); map.push(row); }
-  const doors=state.doors.filter(d=>d.position.x>=b.minX&&d.position.x<=b.maxX&&d.position.y>=b.minY&&d.position.y<=b.maxY).map(d=>({position:{x:d.position.x-b.minX,y:d.position.y-b.minY},tag:d.tag}));
-  return { map, doors, size:{x:b.maxX-b.minX+1,y:b.maxY-b.minY+1} };
+  const points=state.points.filter(d=>d.position.x>=b.minX&&d.position.x<=b.maxX&&d.position.y>=b.minY&&d.position.y<=b.maxY).map(d=>({position:{x:d.position.x-b.minX,y:d.position.y-b.minY},tag:d.tag}));
+  return { map, points, size:{x:b.maxX-b.minX+1,y:b.maxY-b.minY+1} };
 }
 
 function exportPayload() {
   const c=compressForExport();
-  return { id:els.id.value.trim()||"1", type:els.type.value.trim()||"N", size:c.size, map:c.map, doors:c.doors };
+  return { id:els.id.value.trim()||"1", type:els.type.value.trim()||"N", size:c.size, map:c.map, points:c.points };
 }
 
 function downloadJson() {
@@ -1132,27 +1132,27 @@ function normalizeImportedMap(map) {
   });
 }
 
-function normalizeImportedDoors(doors, width, height) {
-  if(doors===undefined) return [];
-  if(!Array.isArray(doors)) throw new Error("doors must be an array.");
-  return doors.map((d,i)=>{
+function normalizeImportedPoints(points, width, height) {
+  if(points===undefined) return [];
+  if(!Array.isArray(points)) throw new Error("points must be an array.");
+  return points.map((d,i)=>{
     const x=parseInt(d?.position?.x,10),y=parseInt(d?.position?.y,10);
-    if(!Number.isInteger(x)||!Number.isInteger(y)||x<0||y<0||x>=width||y>=height) throw new Error(`Door ${i} has an invalid position.`);
-    return { position:{x,y}, tag:String(d?.tag??"door") };
+    if(!Number.isInteger(x)||!Number.isInteger(y)||x<0||y<0||x>=width||y>=height) throw new Error(`Point ${i} has an invalid position.`);
+    return { position:{x,y}, tag:String(d?.tag??"point") };
   });
 }
 
 function importPayload(payload) {
   const importedMap=normalizeImportedMap(payload?.map);
   const h=importedMap.length,w=importedMap[0].length;
-  const importedDoors=normalizeImportedDoors(payload?.doors,w,h);
-  pushHistory(); state.sourceMap=importedMap; state.doors=importedDoors;
+  const importedPoints=normalizeImportedPoints(payload?.points,w,h);
+  pushHistory(); state.sourceMap=importedMap; state.points=importedPoints;
   els.size.value=Math.max(w,h); els.cut.value=Math.max(w,h);
   if(payload?.id!==undefined) els.id.value=String(payload.id||"1");
   if(payload?.type!==undefined) els.type.value=String(payload.type||"N");
   state.selections=null;
   applyRulesAndRender(); fitView();
-  els.status.textContent=`Imported ${w}x${h} map with ${state.doors.length} doors.`;
+  els.status.textContent=`Imported ${w}x${h} map with ${state.points.length} points.`;
 }
 
 function importJsonFile(file) {
@@ -1191,7 +1191,7 @@ function bindEvents() {
   els.redo.addEventListener("click", redo);
   els.copyBtn.addEventListener("click",  copySelection);
   els.pasteBtn.addEventListener("click", enterPasteMode);
-  els.clearDoors.addEventListener("click", () => { pushHistory(); state.doors=[]; applyRulesAndRender(); });
+  els.clearPoints.addEventListener("click", () => { pushHistory(); state.points=[]; applyRulesAndRender(); });
   els.addRule.addEventListener("click", addRule);
   els.exportRules.addEventListener("click", downloadRulesJson);
   els.importRules.addEventListener("click", () => els.importRulesInput.click());
@@ -1231,7 +1231,7 @@ function bindEvents() {
   });
   window.addEventListener("keyup", e => { if(e.code==="Space") state.spaceDown=false; });
 
-  for(const inp of [els.size,els.cut,els.id,els.type,els.doorTag]) inp.addEventListener("input",saveLocal);
+  for(const inp of [els.size,els.cut,els.id,els.type,els.pointTag]) inp.addEventListener("input",saveLocal);
 
   els.readout.addEventListener("click",()=>{ els.readoutModal.classList.add("open"); els.readoutModal.setAttribute("aria-hidden","false"); });
   els.closeReadout.addEventListener("click", closeReadout);
