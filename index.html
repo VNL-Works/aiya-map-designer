@@ -256,10 +256,24 @@ const tiles = [
   { id:6, name:"Triangle Pillar"},
   { id:7, name:"Edge"          },
   { id:8, name:"Left Edge"     },
-  { id:9, name:"Right Edge"    }
+  { id:9, name:"Right Edge"    },
+  { id:10, name:"Left Alt",            mask:["001","001","001"] },
+  { id:11, name:"Right Alt",           mask:["000","000","111"] },
+  { id:12, name:"Corner Alt",          mask:["001","001","111"] },
+  { id:13, name:"Left Alt Full",       mask:["111","111","111"] },
+  { id:14, name:"Right Alt Full",      mask:["111","111","111"] },
+  { id:15, name:"Left Full",           mask:["111","111","111"] },
+  { id:16, name:"Right Full",          mask:["111","111","111"] },
+  { id:17, name:"Triangle Pillar Alt", mask:["000","000","001"] },
+  { id:18, name:"Square Pillar Alt",   mask:["000","000","001"] },
+  { id:19, name:"Vertical Left",       mask:["100","110","111"] },
+  { id:20, name:"Vertical Right",      mask:["111","011","001"] },
+  { id:21, name:"Floor Left",          mask:["100","110","111"] },
+  { id:22, name:"Floor Right",         mask:["111","011","001"] }
 ];
 
 const tileOptions = [{ id:-2, name:"None" }, ...tiles];
+const validTileIds = new Set(tileOptions.map(tile => tile.id));
 const ruleCells   = ["TL","TC","TR","CL","CC","CR","BL","BC","BR"];
 const storageKey  = "ultimate-map-forge-v1";
 const imageCache  = new Map();
@@ -408,14 +422,15 @@ function setTile(map, x, y, value) {
 // ─── Rules ─────────────────────────────────────────────────────────────────
 
 function normalizeRule(rule = {}) {
+  const parsedOutput = parseInt(rule.output,10);
   return {
     name: rule.name || "Rule",
     enabled: rule.enabled !== false,
     match: Array.from({ length: 9 }, (_, i) => {
       const v = parseInt(rule.match?.[i], 10);
-      return Number.isInteger(v) && v >= -3 && v <= 9 ? v : -3;
+      return v === -3 || validTileIds.has(v) ? v : -3;
     }),
-    output: Number.isInteger(parseInt(rule.output,10)) ? clamp(parseInt(rule.output,10),-2,9) : 0
+    output: validTileIds.has(parsedOutput) ? parsedOutput : 0
   };
 }
 
@@ -1128,7 +1143,7 @@ function normalizeImportedMap(map) {
   const width=map[0].length;
   return map.map((row,y)=>{
     if(!Array.isArray(row)||row.length!==width) throw new Error(`Map row ${y} must have exactly ${width} columns.`);
-    return row.map((v,x)=>{ const id=parseInt(v,10); if(!Number.isInteger(id)||id<-2||id>9||id===-1) throw new Error(`Invalid tile id at ${x},${y}.`); return id; });
+    return row.map((v,x)=>{ const id=parseInt(v,10); if(!Number.isInteger(id)||!validTileIds.has(id)) throw new Error(`Invalid tile id at ${x},${y}.`); return id; });
   });
 }
 
