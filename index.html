@@ -164,7 +164,7 @@
           <button data-tool="rect"    title="矩形をドラッグ">矩形</button>
           <button data-tool="line"    title="直線をドラッグ">直線</button>
           <button data-tool="pick"    title="カーソル下のタイルを選択">ピック</button>
-          <button data-tool="point"    title="タイルをクリックしてポイントを切替">ポイント</button>
+          <button data-tool="point"    title="クリックでポイントを追加/削除。既存ポイントをドラッグで移動">ポイント</button>
           <button data-tool="select"  title="矩形選択 — Ctrl+C でコピー、Ctrl+V で貼り付け">選択</button>
         </div>
         <div class="button-grid">
@@ -809,6 +809,24 @@ function togglePoint(cell) {
   applyRulesAndRender();
 }
 
+function pointIndexAt(cell, exceptIndex = -1) {
+  if (!cell) return -1;
+  return state.points.findIndex((d, i) => i !== exceptIndex && d.position.x===cell.x && d.position.y===cell.y);
+}
+
+function movePoint(index, cell) {
+  const point = state.points[index];
+  if (!point || !cell) return false;
+  if (point.position.x===cell.x && point.position.y===cell.y) return false;
+  if (pointIndexAt(cell, index) >= 0) {
+    els.status.textContent = "移動先にはすでにポイントがあります。";
+    return false;
+  }
+  point.position = { x:cell.x, y:cell.y };
+  applyRulesAndRender();
+  return true;
+}
+
 // ─── Copy / Paste ──────────────────────────────────────────────────────────
 
 function getSelectionCells() {
@@ -891,7 +909,7 @@ function startPointer(event) {
     startClientX: event.clientX, startClientY: event.clientY,
     startPanX: state.panX, startPanY: state.panY,
     startCell: cell, lastKey: "", changed: false,
-    tool: currentTool, activeSelection: null
+    tool: currentTool, activeSelection: null, activePointIndex: -1
   };
   els.canvas.setPointerCapture(event.pointerId);
 
@@ -917,7 +935,15 @@ function startPointer(event) {
   if (currentTool==="replace") state.pointer.changed = replaceTileAt(cell);
   if (currentTool==="fill")    state.pointer.changed = paintCells(floodCells(cell), state.selectedTile);
   if (currentTool==="pick")    { state.selectedTile = tileAt(state.sourceMap,cell.x,cell.y); renderPalette(); }
-  if (currentTool==="point")    { togglePoint(cell); state.pointer.changed = true; }
+  if (currentTool==="point") {
+    const existingIndex = pointIndexAt(cell);
+    if (existingIndex >= 0) {
+      state.pointer.activePointIndex = existingIndex;
+    } else {
+      togglePoint(cell);
+      state.pointer.changed = true;
+    }
+  }
   updatePreview(cell);
 }
 
@@ -963,6 +989,11 @@ function movePointer(event) {
     scheduleDraw(); return;
   }
 
+  if (currentTool === "point" && state.pointer.activePointIndex >= 0) {
+    state.pointer.changed = movePoint(state.pointer.activePointIndex, cell) || state.pointer.changed;
+    scheduleDraw(); return;
+  }
+
   if (currentTool==="paint"||currentTool==="erase") {
     const key = `${cell.x},${cell.y}`;
     if (key !== state.pointer.lastKey) {
@@ -987,6 +1018,10 @@ function endPointer(event) {
       state.pointer.activeSelection.x2 = cell.x;
       state.pointer.activeSelection.y2 = cell.y;
       updateStatus();
+    }
+    if (currentTool==="point" && state.pointer.activePointIndex >= 0 && !state.pointer.changed && cell.x===state.pointer.startCell.x && cell.y===state.pointer.startCell.y) {
+      state.points.splice(state.pointer.activePointIndex, 1);
+      state.pointer.changed = true;
     }
   }
   if (!state.pointer.changed && state.history.length && currentTool!=="select") state.history.pop();
