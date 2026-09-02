@@ -31,7 +31,9 @@ function targetRoomOf(room, tag) {
   return roomById(t);
 }
 const exitsBackTo = (room, source) => roomPoints(room).filter(p => kindOf(p.tag)==="exit" && targetRoomOf(room, p.tag)===source);
-const roomById = id => F.floor ? F.floor.rooms.find(r => r.id===id) || null : null;
+// Unity（OrdinalIgnoreCase）に合わせて id の大文字小文字は区別しない
+const sameId = (a, b) => String(a).toLowerCase() === String(b).toLowerCase();
+const roomById = id => F.floor ? F.floor.rooms.find(r => sameId(r.id, id)) || null : null;
 const roomIndex = room => F.floor ? F.floor.rooms.indexOf(room) : -1;
 const roomHue = room => ROOM_HUES[Math.max(0, roomIndex(room)) % ROOM_HUES.length];
 const roomColor = (room, l=64, s=55) => `hsl(${roomHue(room)} ${s}% ${l}%)`;
@@ -259,8 +261,8 @@ function validate() {
   const push = (sev, room, cell, msg) => issues.push({ sev, roomId: room?.id ?? null, cell, msg });
 
   const idCount = new Map();
-  for (const r of rooms) idCount.set(r.id, (idCount.get(r.id) || 0) + 1);
-  for (const r of rooms) if (idCount.get(r.id) > 1) push("error", r, null, `部屋 id「${r.id}」が重複しています`);
+  for (const r of rooms) idCount.set(r.id.toLowerCase(), (idCount.get(r.id.toLowerCase()) || 0) + 1);
+  for (const r of rooms) if (idCount.get(r.id.toLowerCase()) > 1) push("error", r, null, `部屋 id「${r.id}」が重複しています（大文字小文字は区別されません）`);
 
   let starts = 0;
   for (const r of rooms) {
@@ -276,7 +278,7 @@ function validate() {
         const t = targetRoomOf(r, tag);
         if (target==="" && !t) push("error", r, cell, "無名の扉「exit」は唯一の start 部屋へ戻る扉です。start 部屋が1つに決まらないか、この部屋自身が start 部屋です");
         else if (!t) push("error", r, cell, `扉の行き先「${target}」が階層内にありません`);
-        else if (t === r) push("warn", r, cell, "扉が自分の部屋を指しています");
+        else if (t === r) push("error", r, cell, "扉が自分の部屋を指しています（Unity では遷移できません）");
         else {
           const back = exitsBackTo(t, r).length;
           if (back > 1) push("error", r, cell, `${t.short} からこの部屋へ戻る扉が ${back} 個あります（到着扉が一意に決まりません）`);
@@ -330,7 +332,7 @@ function connections() {
     const b = targetRoomOf(a, p.tag);
     const backs = b ? exitsBackTo(b, a) : [];
     const back = backs[0] || null;
-    const status = !b ? "bad" : backs.length > 1 ? "bad" : !back ? (hasStart(b) ? "ok" : "half") : "ok";
+    const status = !b || b === a ? "bad" : backs.length > 1 ? "bad" : !back ? (hasStart(b) ? "ok" : "half") : "ok";
     out.push({ a, cellA: p.position, b, cellB: back?.position || null, target: target || "(start)", status });
   }
   return out;
