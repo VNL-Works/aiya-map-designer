@@ -2,89 +2,397 @@
   "schema": "aiya-floor/v1",
   "id": "stage02",
   "name": "第2階層",
-  "note": "aiya-desire Assets/Adventure/Data/Maps/stage02*.json (main 2026-09-02) のコピー。タグ辞書は Docs/StoryProduction/14_Floor2_Map_Placement_Design.md §3 準拠。",
+  "note": "第2階層マップ v2（2026-09-02 プランナー構造図準拠・16部屋）。生成: aiya-desire Tools/Maps/build_stage02_v2.py。タグ辞書は Docs/StoryProduction/14_Floor2_Map_Placement_Design.md §3 準拠。",
   "rooms": [
-    { "file": "stage02.json",        "id": "02-HUB",    "name": "玄関ホール",        "short": "HUB" },
-    { "file": "stage02-DINING.json", "id": "02-DINING", "name": "食堂（ボス部屋）",   "short": "DINING" },
-    { "file": "stage02-CLOWN.json",  "id": "02-CLOWN",  "name": "ピエロの人形の部屋", "short": "CLOWN" },
-    { "file": "stage02-BALL.json",   "id": "02-BALL",   "name": "ボールの部屋",       "short": "BALL" },
-    { "file": "stage02-DIARY.json",  "id": "02-DIARY",  "name": "日記の部屋",         "short": "DIARY" },
-    { "file": "stage02-STUDY.json",  "id": "02-STUDY",  "name": "書斎",               "short": "STUDY" },
-    { "file": "stage02-SALVIA.json", "id": "02-SALVIA", "name": "サルビアの部屋（暗闇）", "short": "SALVIA" },
-    { "file": "stage02-REHAB.json",  "id": "02-REHAB",  "name": "ダメージ床の通路",   "short": "REHAB" },
-    { "file": "stage02-MEMORY.json", "id": "02-MEMORY", "name": "思い出箱の部屋",     "short": "MEMORY" }
+    {
+      "file": "stage02.json",
+      "id": "02-HUB",
+      "name": "2F玄関ホール",
+      "short": "HUB",
+      "pos": {
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "file": "stage02-MID.json",
+      "id": "02-MID",
+      "name": "ホール前の通路",
+      "short": "MID",
+      "pos": {
+        "x": 0,
+        "y": -217
+      }
+    },
+    {
+      "file": "stage02-SALVIA.json",
+      "id": "02-SALVIA",
+      "name": "サルビアの部屋（暗闇）",
+      "short": "SALVIA",
+      "pos": {
+        "x": 0,
+        "y": -358
+      }
+    },
+    {
+      "file": "stage02-ANTE.json",
+      "id": "02-ANTE",
+      "name": "食堂前の間（部屋・通路）",
+      "short": "ANTE",
+      "pos": {
+        "x": 0,
+        "y": -492
+      }
+    },
+    {
+      "file": "stage02-DINING.json",
+      "id": "02-DINING",
+      "name": "食堂（ボス部屋）",
+      "short": "DINING",
+      "pos": {
+        "x": -1,
+        "y": -662
+      }
+    },
+    {
+      "file": "stage02-WEST.json",
+      "id": "02-WEST",
+      "name": "西通路",
+      "short": "WEST",
+      "pos": {
+        "x": -215,
+        "y": -299
+      }
+    },
+    {
+      "file": "stage02-EAST.json",
+      "id": "02-EAST",
+      "name": "東通路",
+      "short": "EAST",
+      "pos": {
+        "x": 219,
+        "y": -299
+      }
+    },
+    {
+      "file": "stage02-REHAB.json",
+      "id": "02-REHAB",
+      "name": "ダメージ床の通路",
+      "short": "REHAB",
+      "pos": {
+        "x": 420,
+        "y": -358
+      }
+    },
+    {
+      "file": "stage02-HINT.json",
+      "id": "02-HINT",
+      "name": "ヒントの間",
+      "short": "HINT",
+      "pos": {
+        "x": 656,
+        "y": -356
+      }
+    },
+    {
+      "file": "stage02-MEMORY.json",
+      "id": "02-MEMORY",
+      "name": "思い出箱の部屋（ふみきり）",
+      "short": "MEMORY",
+      "pos": {
+        "x": -575,
+        "y": -498
+      }
+    },
+    {
+      "file": "stage02-LCORR.json",
+      "id": "02-LCORR",
+      "name": "L字通路",
+      "short": "LCORR",
+      "pos": {
+        "x": -487,
+        "y": -72
+      }
+    },
+    {
+      "file": "stage02-DIARY.json",
+      "id": "02-DIARY",
+      "name": "日記の部屋",
+      "short": "DIARY",
+      "pos": {
+        "x": -317,
+        "y": -103
+      }
+    },
+    {
+      "file": "stage02-STUDY.json",
+      "id": "02-STUDY",
+      "name": "書斎",
+      "short": "STUDY",
+      "pos": {
+        "x": 315,
+        "y": 0
+      }
+    },
+    {
+      "file": "stage02-WING.json",
+      "id": "02-WING",
+      "name": "東翼通路（ボール・ピエロ前）",
+      "short": "WING",
+      "pos": {
+        "x": 716,
+        "y": -1
+      }
+    },
+    {
+      "file": "stage02-BALL.json",
+      "id": "02-BALL",
+      "name": "ボールの部屋",
+      "short": "BALL",
+      "pos": {
+        "x": 604,
+        "y": -151
+      }
+    },
+    {
+      "file": "stage02-CLOWN.json",
+      "id": "02-CLOWN",
+      "name": "ピエロの人形の部屋",
+      "short": "CLOWN",
+      "pos": {
+        "x": 868,
+        "y": -151
+      }
+    }
   ],
   "tags": {
     "*": [
-      { "tag": "start", "label": "初期スポーン（階層で1つ・チェックポイント）" }
+      {
+        "tag": "start",
+        "label": "初期スポーン（階層で1つ・チェックポイント）"
+      }
     ],
     "02-HUB": [
-      { "tag": "hall_clock",        "label": "柱時計（壁掛け・HAL-03/04）" },
-      { "tag": "hall_frames",       "label": "空の写真立て（HAL-05/06）" },
-      { "tag": "hall_tennis_photo", "label": "テニス少年の額入り写真（ボール部屋の正解根拠）" },
-      { "tag": "hal10_trigger",     "label": "書斎方向 初回通過トリガー（HAL-10）" },
-      { "tag": "memo_hall",         "label": "壁メモ MSG-00（玄関脇）" },
-      { "tag": "memo_bossdoor",     "label": "壁メモ MSG-09「いただきます」（食堂扉の脇）" },
-      { "tag": "shadow",            "label": "思念体スポーン（ホールのみ徘徊）" }
+      {
+        "tag": "hall_clock",
+        "label": "柱時計（壁掛け・HAL-03/04）"
+      },
+      {
+        "tag": "hall_frames",
+        "label": "空の写真立て（HAL-05/06）"
+      },
+      {
+        "tag": "hall_tennis_photo",
+        "label": "テニス少年の額入り写真（ボール部屋の正解根拠）"
+      },
+      {
+        "tag": "hal10_trigger",
+        "label": "書斎方向 初回通過トリガー（HAL-10）"
+      },
+      {
+        "tag": "memo_hall",
+        "label": "壁メモ MSG-00（玄関脇）"
+      },
+      {
+        "tag": "shadow",
+        "label": "思念体スポーン（ホールのみ徘徊）"
+      }
+    ],
+    "02-ANTE": [
+      {
+        "tag": "memo_bossdoor",
+        "label": "壁メモ MSG-09「いただきます」（食堂扉の脇）"
+      }
     ],
     "02-DINING": [
-      { "tag": "dining_table", "label": "食卓（DIN-01〜06）" },
-      { "tag": "phantom_l",    "label": "両親の幻影・左" },
-      { "tag": "phantom_r",    "label": "両親の幻影・右" },
-      { "tag": "boss",         "label": "シュン（ボス導入→リズムバトル）" },
-      { "tag": "memo_dining",  "label": "壁メモ MSG-01（食堂入口内側）" }
+      {
+        "tag": "dining_table",
+        "label": "食卓（DIN-01〜06）"
+      },
+      {
+        "tag": "phantom_l",
+        "label": "両親の幻影・左"
+      },
+      {
+        "tag": "phantom_r",
+        "label": "両親の幻影・右"
+      },
+      {
+        "tag": "boss",
+        "label": "シュン（ボス導入→リズムバトル）"
+      },
+      {
+        "tag": "memo_dining",
+        "label": "壁メモ MSG-01（食堂入口内側）"
+      }
     ],
     "02-CLOWN": [
-      { "tag": "toybox",     "label": "おもちゃ箱＝写真①拾得（最奥）" },
-      { "tag": "clown_doll", "label": "ピエロ人形（初期位置＝おもちゃ箱付近）" },
-      { "tag": "memo_clown", "label": "壁メモ MSG-02「くらいとき、うごかないこと」" }
+      {
+        "tag": "toybox",
+        "label": "おもちゃ箱＝写真①拾得（最奥）"
+      },
+      {
+        "tag": "clown_doll",
+        "label": "ピエロ人形（初期位置＝おもちゃ箱付近）"
+      },
+      {
+        "tag": "memo_clown",
+        "label": "壁メモ MSG-02「くらいとき、うごかないこと」"
+      }
     ],
     "02-BALL": [
-      { "tag": "ball_tennis", "label": "テニスボール（正解・pickup）" },
-      { "tag": "ball_basket", "label": "バスケットボール（不正解・爆発）" },
-      { "tag": "ball_soccer", "label": "サッカーボール（不正解・爆発）" },
-      { "tag": "memo_ball",   "label": "壁メモ MSG-03「僕の大事なボールを、取ってきて。」（入口すぐ）" }
+      {
+        "tag": "ball_tennis",
+        "label": "テニスボール（正解・pickup）"
+      },
+      {
+        "tag": "ball_basket",
+        "label": "バスケットボール（不正解・爆発）"
+      },
+      {
+        "tag": "ball_soccer",
+        "label": "サッカーボール（不正解・爆発）"
+      },
+      {
+        "tag": "memo_ball",
+        "label": "壁メモ MSG-03「僕の大事なボールを、取ってきて。」（入口すぐ）"
+      }
     ],
     "02-DIARY": [
-      { "tag": "diary_book", "label": "分厚い日記帳（並べ替えUI）" },
-      { "tag": "scrap1",     "label": "日記の切れ端 1" },
-      { "tag": "scrap2",     "label": "日記の切れ端 2" },
-      { "tag": "scrap3",     "label": "日記の切れ端 3" },
-      { "tag": "scrap4",     "label": "日記の切れ端 4" },
-      { "tag": "scrap5",     "label": "日記の切れ端 5" },
-      { "tag": "memo_diary", "label": "壁メモ MSG-04（入口内側）" }
+      {
+        "tag": "diary_book",
+        "label": "分厚い日記帳（並べ替えUI）"
+      },
+      {
+        "tag": "scrap1",
+        "label": "日記の切れ端 1"
+      },
+      {
+        "tag": "scrap2",
+        "label": "日記の切れ端 2"
+      },
+      {
+        "tag": "scrap3",
+        "label": "日記の切れ端 3"
+      },
+      {
+        "tag": "scrap4",
+        "label": "日記の切れ端 4"
+      },
+      {
+        "tag": "scrap5",
+        "label": "日記の切れ端 5"
+      },
+      {
+        "tag": "memo_diary",
+        "label": "壁メモ MSG-04（入口内側）"
+      }
     ],
     "02-STUDY": [
-      { "tag": "desk",       "label": "書斎机＝南京錠付き引き出し（隣接4床セルは空けること）" },
-      { "tag": "trophy",     "label": "優勝トロフィー「第81回」" },
-      { "tag": "memo_study", "label": "壁メモ MSG-05" }
+      {
+        "tag": "desk",
+        "label": "書斎机＝南京錠付き引き出し（隣接4床セルは空けること）"
+      },
+      {
+        "tag": "trophy",
+        "label": "優勝トロフィー「第81回」"
+      },
+      {
+        "tag": "memo_study",
+        "label": "壁メモ MSG-05"
+      }
     ],
     "02-SALVIA": [
-      { "tag": "salvia1",      "label": "サルビアの鉢 1" },
-      { "tag": "salvia2",      "label": "サルビアの鉢 2" },
-      { "tag": "salvia3",      "label": "サルビアの鉢 3" },
-      { "tag": "salvia4",      "label": "サルビアの鉢 4" },
-      { "tag": "encyclopedia", "label": "花の図鑑（机上・中央付近）" },
-      { "tag": "toy_doll",     "label": "プチびっくり：人形" },
-      { "tag": "toy_jackbox",  "label": "プチびっくり：びっくり箱" },
-      { "tag": "toy_cushion",  "label": "プチびっくり：クッション" },
-      { "tag": "memo_salvia",  "label": "壁メモ MSG-06「おはなは かぞえるだけ」" }
+      {
+        "tag": "salvia1",
+        "label": "サルビアの鉢 1"
+      },
+      {
+        "tag": "salvia2",
+        "label": "サルビアの鉢 2"
+      },
+      {
+        "tag": "salvia3",
+        "label": "サルビアの鉢 3"
+      },
+      {
+        "tag": "salvia4",
+        "label": "サルビアの鉢 4"
+      },
+      {
+        "tag": "encyclopedia",
+        "label": "花の図鑑（机上・中央付近）"
+      },
+      {
+        "tag": "toy_doll",
+        "label": "プチびっくり：人形"
+      },
+      {
+        "tag": "toy_jackbox",
+        "label": "プチびっくり：びっくり箱"
+      },
+      {
+        "tag": "toy_cushion",
+        "label": "プチびっくり：クッション"
+      },
+      {
+        "tag": "memo_salvia",
+        "label": "壁メモ MSG-06「おはなは かぞえるだけ」"
+      }
     ],
     "02-REHAB": [
-      { "tag": "wheelchair",   "label": "錆びた車椅子（入口側・ダメージ床の手前）" },
-      { "tag": "dmg5_trigger", "label": "進入前警告 DMG-05（床の手前に置く）" },
-      { "tag": "dmg_zone",     "label": "大ダメージ床（目玉床）" },
-      { "tag": "hint_picture", "label": "ヒント絵（右端の壁）" },
-      { "tag": "memo_rehab",   "label": "壁メモ MSG-07「あるけないときは、むりをしないこと」" }
+      {
+        "tag": "wheelchair",
+        "label": "錆びた車椅子（入口側・ダメージ床の手前）"
+      },
+      {
+        "tag": "dmg5_trigger",
+        "label": "進入前警告 DMG-05（床の手前に置く）"
+      },
+      {
+        "tag": "dmg_zone",
+        "label": "大ダメージ床（目玉床）帯の起点"
+      },
+      {
+        "tag": "memo_rehab",
+        "label": "壁メモ MSG-07「あるけないときは、むりをしないこと」"
+      }
+    ],
+    "02-HINT": [
+      {
+        "tag": "hint_picture",
+        "label": "ヒント絵（ダメージ床の先・右端の壁）"
+      }
     ],
     "02-MEMORY": [
-      { "tag": "crossing",    "label": "踏切（出入口通路を横切る遮断機）" },
-      { "tag": "memory_box",  "label": "思い出の箱（中央台座）" },
-      { "tag": "eyeball1",    "label": "アイボール 1（隅）" },
-      { "tag": "eyeball2",    "label": "アイボール 2（隅）" },
-      { "tag": "eyeball3",    "label": "アイボール 3（隅）" },
-      { "tag": "eyeball4",    "label": "アイボール 4（隅）" },
-      { "tag": "memo_memory", "label": "壁メモ MSG-08「ここには、ながくいないでください」" }
+      {
+        "tag": "crossing",
+        "label": "踏切（出入口を横切る遮断機）"
+      },
+      {
+        "tag": "memory_box",
+        "label": "思い出の箱（中央台座）"
+      },
+      {
+        "tag": "eyeball1",
+        "label": "アイボール 1（隅）"
+      },
+      {
+        "tag": "eyeball2",
+        "label": "アイボール 2（隅）"
+      },
+      {
+        "tag": "eyeball3",
+        "label": "アイボール 3（隅）"
+      },
+      {
+        "tag": "eyeball4",
+        "label": "アイボール 4（隅）"
+      },
+      {
+        "tag": "memo_memory",
+        "label": "壁メモ MSG-08「ここには、ながくいないでください」"
+      }
     ]
   }
 }
