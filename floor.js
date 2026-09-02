@@ -18,8 +18,19 @@ const ui = {};
 // ─── 小道具 ─────────────────────────────────────────────────────────────
 const q = sel => document.querySelector(sel);
 const el = (tag, cls, text) => { const e=document.createElement(tag); if(cls) e.className=cls; if(text!==undefined) e.textContent=text; return e; };
-const kindOf = t => t==="start" ? "start" : t.startsWith("exit,") ? "exit" : t.startsWith("memo_") ? "memo" : (/trigger$/.test(t) || t==="dmg_zone") ? "trig" : t==="shadow" ? "shadow" : "gimmick";
-const exitTarget = t => t.startsWith("exit,") ? t.slice(5).trim() : null;
+const kindOf = t => (t==="start" || t==="entrance") ? "start" : (t==="exit" || t.startsWith("exit,")) ? "exit" : t.startsWith("memo_") ? "memo" : (/trigger$/.test(t) || t==="dmg_zone") ? "trig" : t==="shadow" ? "shadow" : "gimmick";
+const exitTarget = t => t==="exit" ? "" : t.startsWith("exit,") ? t.slice(5).trim() : null;
+const isStartTag = t => t==="start" || t==="entrance";
+const hasStart = room => roomPoints(room).some(p => isStartTag(p.tag));
+// 階層で唯一の start/entrance を持つ部屋（Unity の ResolveUniqueStartLayoutIndex 相当）。無ければ null
+function uniqueStartRoom() { if (!F.floor) return null; const rs = F.floor.rooms.filter(hasStart); return rs.length===1 ? rs[0] : null; }
+// 扉タグの行き先部屋。無名 "exit" は唯一の start 部屋へ（自室が start 部屋なら解決不能）
+function targetRoomOf(room, tag) {
+  const t = exitTarget(tag); if (t===null) return null;
+  if (t==="") { const sr = uniqueStartRoom(); return sr && sr !== room ? sr : null; }
+  return roomById(t);
+}
+const exitsBackTo = (room, source) => roomPoints(room).filter(p => kindOf(p.tag)==="exit" && targetRoomOf(room, p.tag)===source);
 const roomById = id => F.floor ? F.floor.rooms.find(r => r.id===id) || null : null;
 const roomIndex = room => F.floor ? F.floor.rooms.indexOf(room) : -1;
 const roomHue = room => ROOM_HUES[Math.max(0, roomIndex(room)) % ROOM_HUES.length];
@@ -110,6 +121,7 @@ function setFloor(payload, activeId, { fit=true } = {}) {
   F.floor = { schema:"aiya-floor/v1", id: payload.id || "floor", name: payload.name || "階層", note: payload.note || "", tags: payload.tags || {}, rooms };
   const start = rooms.find(r => r.id===activeId) || rooms.find(r => r.points.some(p => p.tag==="start")) || rooms[0];
   ui.strip.hidden = false; ui.section.hidden = false; ui.overview.hidden = false; ui.empty.hidden = true;
+  document.querySelector("main").classList.add("floor-on");
   activate(start, { fit });
   saveFloor();
 }
@@ -120,6 +132,7 @@ function closeFloor() {
   F.floor = null; F.active = null; F.pending = null; closePop(); hideBanner();
   localStorage.removeItem(FLOOR_KEY);
   ui.strip.hidden = true; ui.section.hidden = true; ui.overview.hidden = true; ui.chipsWrap.hidden = true; ui.empty.hidden = false;
+  document.querySelector("main").classList.remove("floor-on");
   state.history = []; state.future = [];
   applyRulesAndRender();
   setStatus("単一マップモードに戻りました。");
@@ -234,13 +247,8 @@ function dictFor(roomId) {
 }
 function dictLabel(roomId, tag) {
   const k = kindOf(tag);
-  if (k==="exit") { const target = exitTarget(tag); const r = roomById(target); return r ? `扉 → ${r.name}` : `扉 → ${target}（階層内に無い）`; }
+  if (k==="exit") { const target = exitTarget(tag); const r = targetRoomOf(F.active, tag); return r ? `扉 → ${r.name}${target==="" ? "（無名 exit＝start 部屋へ）" : ""}` : target==="" ? "無名の扉（start 部屋が決まらない）" : `扉 → ${target}（階層内に無い）`; }
   return dictFor(roomId).find(d => d.tag===tag)?.label || "";
-}
-function isKnownTag(roomId, tag) {
-  const k = kindOf(tag);
-  if (k==="exit" || k==="start") return true;
-  return dictFor(roomId).some(d => d.tag===tag);
 }
 
 // ─── 検証 ─────────────────────────────────────────────────────────────────
@@ -262,36 +270,41 @@ function validate() {
     for (const p of pts) {
       const tag = p.tag, k = kindOf(tag), cell = p.position;
       const tile = map[cell.y]?.[cell.x];
-      if (tag==="start") starts++;
+      if (isStartTag(tag)) starts++;
       if (k==="exit") {
         const target = exitTarget(tag);
-        const t = roomById(target);
-        if (!target) push("error", r, cell, "扉タグの行き先が空です（exit,<部屋id>）");
+        const t = targetRoomOf(r, tag);
+        if (target==="" && !t) push("error", r, cell, "無名の扉「exit」は唯一の start 部屋へ戻る扉です。start 部屋が1つに決まらないか、この部屋自身が start 部屋です");
         else if (!t) push("error", r, cell, `扉の行き先「${target}」が階層内にありません`);
         else if (t === r) push("warn", r, cell, "扉が自分の部屋を指しています");
-        else if (!roomPoints(t).some(pp => exitTarget(pp.tag)===r.id)) push("error", r, cell, `${t.short} に「exit,${r.id}」の戻り扉がありません（到着地点が決まりません）`);
+        else {
+          const back = exitsBackTo(t, r).length;
+          if (back > 1) push("error", r, cell, `${t.short} からこの部屋へ戻る扉が ${back} 個あります（到着扉が一意に決まりません）`);
+          else if (back === 0 && !hasStart(t)) push("error", r, cell, `${t.short} に「exit,${r.id}」の戻り扉がありません（到着地点が決まりません）`);
+          else if (back === 0) push("info", r, cell, `${t.short} に戻り扉がないため、到着は ${t.short} の start 位置になります`);
+        }
         if (tile === -2 || tile === undefined) push("warn", r, cell, `扉「${tag}」が空セル(-2)の上にあります`);
       } else {
         // 壁メモ・掛け絵・start など壁タイル上の配置は正規の使い方なので、空セル(-2)だけをエラーにする
         if (tile === -2 || tile === undefined) push("error", r, cell, `「${tag}」が空セル(-2)の上にあります`);
         if (!isKnownTag(r.id, tag)) push("info", r, cell, `「${tag}」は辞書に無いタグです（Unity 側の配線を確認）`);
       }
-      if (tagCount.get(tag) > 1 && !dupReported.has(tag)) {
+      if (k!=="exit" && tagCount.get(tag) > 1 && !dupReported.has(tag)) {
         dupReported.add(tag);
-        push("warn", r, cell, tag === "start" ? "start が同じ部屋に複数あります" : k === "exit" ? `${shortOf(exitTarget(tag))} への扉が同じ部屋に ${tagCount.get(tag)} 個あります（到着地点が曖昧になります）` : `タグ「${tag}」が同じ部屋に ${tagCount.get(tag)} 個あります`);
+        push("warn", r, cell, isStartTag(tag) ? `${tag} が同じ部屋に複数あります` : `タグ「${tag}」が同じ部屋に ${tagCount.get(tag)} 個あります`);
       }
     }
     if (!tag0(map)) push("warn", r, null, "床(0)のセルがありません");
   }
   if (starts === 0) push("error", null, null, "階層に「start」がありません（先頭部屋に1つ必要）");
-  else if (starts > 1) push("warn", null, null, `「start」が ${starts} 個あります（階層で1つが基本）`);
+  else if (starts > 1) push("error", null, null, `「start / entrance」が階層に ${starts} 個あります（Unity は1つだけを受け付けます）`);
 
   // 到達性
-  const startRoom = rooms.find(r => roomPoints(r).some(p => p.tag==="start")) || rooms[0];
+  const startRoom = rooms.find(hasStart) || rooms[0];
   const seen = new Set([startRoom.id]); const queue = [startRoom];
   while (queue.length) {
     const a = queue.shift();
-    for (const p of roomPoints(a)) { const t = roomById(exitTarget(p.tag) || ""); if (t && !seen.has(t.id)) { seen.add(t.id); queue.push(t); } }
+    for (const p of roomPoints(a)) { if (kindOf(p.tag)!=="exit") continue; const t = targetRoomOf(a, p.tag); if (t && !seen.has(t.id)) { seen.add(t.id); queue.push(t); } }
   }
   for (const r of rooms) if (!seen.has(r.id)) push("warn", r, null, `${r.short} には start の部屋から扉をたどって到達できません`);
 
@@ -301,6 +314,7 @@ function validate() {
   return issues;
 }
 const tag0 = map => map.some(row => row.some(v => v===0));
+function isKnownTag(roomId, tag) { const k = kindOf(tag); if (k==="exit" || k==="start") return true; return dictFor(roomId).some(d => d.tag===tag); }
 const issueCounts = roomId => {
   const c = { error:0, warn:0, info:0 };
   for (const i of F.issues) if (roomId===undefined || i.roomId===roomId) c[i.sev]++;
@@ -313,9 +327,11 @@ function connections() {
   if (!inFloor()) return out;
   for (const a of F.floor.rooms) for (const p of roomPoints(a)) {
     const target = exitTarget(p.tag); if (target===null) continue;
-    const b = roomById(target);
-    const back = b ? roomPoints(b).find(pp => exitTarget(pp.tag)===a.id) : null;
-    out.push({ a, cellA: p.position, b, cellB: back?.position || null, target, status: !b ? "bad" : !back ? "half" : "ok" });
+    const b = targetRoomOf(a, p.tag);
+    const backs = b ? exitsBackTo(b, a) : [];
+    const back = backs[0] || null;
+    const status = !b ? "bad" : backs.length > 1 ? "bad" : !back ? (hasStart(b) ? "ok" : "half") : "ok";
+    out.push({ a, cellA: p.position, b, cellB: back?.position || null, target: target || "(start)", status });
   }
   return out;
 }
@@ -338,7 +354,7 @@ function drawPoint(point, ctx, tw) {
   ctx.fillStyle = color; ctx.strokeStyle = "#22241f"; ctx.lineWidth = 2;
   ctx.beginPath(); ctx.arc(cx, cy, tw * 0.13, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
   if (k==="exit") { ctx.fillStyle = "#fffdf8"; ctx.beginPath(); ctx.arc(cx, cy, tw * 0.05, 0, Math.PI * 2); ctx.fill(); }
-  const label = k==="exit" ? `→ ${shortOf(exitTarget(tag))}` : tag;
+  const label = k==="exit" ? `→ ${exitTarget(tag)==="" ? "start" : shortOf(exitTarget(tag))}` : tag;
   ctx.font = `900 ${Math.max(9, tw * 0.24)}px "Avenir Next","Gill Sans","Trebuchet MS",sans-serif`;
   ctx.textAlign = "center"; ctx.textBaseline = "bottom";
   ctx.lineWidth = 3.5; ctx.strokeStyle = "rgba(255,253,248,0.95)"; ctx.lineJoin = "round";
@@ -473,8 +489,8 @@ function beginReturnDoor(fromId, toId) {
 function cancelPending() { if (!F.pending) return; F.pending = null; hideBanner(); setStatus("戻り扉の配置を中止しました。検証パネルに「戻り扉がありません」が残ります。"); validateAndRender(); }
 
 function openDoorEdit(cell, idx, event) {
-  const pt = state.points[idx], target = exitTarget(pt.tag), t = roomById(target);
-  const back = t ? roomPoints(t).find(pp => exitTarget(pp.tag)===F.active.id) : null;
+  const pt = state.points[idx], target = exitTarget(pt.tag), t = targetRoomOf(F.active, pt.tag);
+  const back = t ? exitsBackTo(t, F.active)[0] || null : null;
   popAt(event);
   const title = el("div", "pop-title", `扉 → ${t ? t.short : target}`);
   const sub = el("div", "pop-sub", t ? `${F.active.short} (${cell.x},${cell.y}) → ${t.name}${back ? ` (${back.position.x},${back.position.y}) 戻り扉あり` : " — 戻り扉なし"}` : `行き先「${target}」は階層内にありません`);
@@ -495,7 +511,7 @@ function openDoorEdit(cell, idx, event) {
     if (back && confirm(`${t.short} の古い戻り扉 (${back.position.x},${back.position.y}) を削除しますか？`)) removePointIn(t, back);
     applyRulesAndRender(); closePop();
     const nr = roomById(nt);
-    if (nr && !roomPoints(nr).some(pp => exitTarget(pp.tag)===F.active.id) && confirm(`${nr.short} に戻り扉を置きますか？（続けてセルをクリック）`)) beginReturnDoor(F.active.id, nr.id);
+    if (nr && !exitsBackTo(nr, F.active).length && confirm(`${nr.short} に戻り扉を置きますか？（続けてセルをクリック）`)) beginReturnDoor(F.active.id, nr.id);
   });
   const del = el("button", "danger", back ? "両側削除" : "削除");
   del.addEventListener("click", () => {
@@ -510,14 +526,21 @@ function openDoorEdit(cell, idx, event) {
   ui.pop.append(title, sub, row1, lab, row2);
 }
 
+function pushHistoryFor(room) {
+  if (room === F.active) { pushHistory(); return; }
+  room.history = room.history || []; room.future = [];
+  room.history.push({ sourceMap: cloneMap(room.map), points: clonePoints(room.points) });
+  if (room.history.length > 80) room.history.shift();
+}
 function removePointIn(room, point) {
-  const arr = roomPoints(room); const i = arr.indexOf(point); if (i >= 0) arr.splice(i, 1);
+  const arr = roomPoints(room); const i = arr.indexOf(point); if (i < 0) return;
+  pushHistoryFor(room); arr.splice(i, 1);
 }
 
 function beforeRemovePoint(point) {
   if (!inFloor() || kindOf(point.tag)!=="exit") return true;
-  const t = roomById(exitTarget(point.tag)); if (!t || t===F.active) return true;
-  const backs = roomPoints(t).filter(pp => exitTarget(pp.tag)===F.active.id);
+  const t = targetRoomOf(F.active, point.tag); if (!t || t===F.active) return true;
+  const backs = exitsBackTo(t, F.active);
   if (!backs.length) return true;
   if (confirm(`${t.short} 側の戻り扉（${backs.map(b => `(${b.position.x},${b.position.y})`).join(" ")}）も削除しますか？\n\nOK = 両側削除　キャンセル = この扉だけ削除`)) for (const b of backs) removePointIn(t, b);
   return true;
@@ -561,7 +584,7 @@ function addRoom() {
 function deleteRoom() {
   if (!inFloor() || F.floor.rooms.length <= 1) { alert("最後の部屋は削除できません。"); return; }
   const r = F.active;
-  const refs = connections().filter(c => c.target===r.id).length;
+  const refs = connections().filter(c => c.b===r).length;
   if (!confirm(`部屋「${r.name}」(${r.id}) を削除します。${refs ? `\n他の部屋の ${refs} 個の扉がこの部屋を指しています（未解決になります）。` : ""}\nよろしいですか？`)) return;
   const i = roomIndex(r); F.floor.rooms.splice(i, 1); F.active = null;
   activate(F.floor.rooms[Math.min(i, F.floor.rooms.length - 1)]);
@@ -602,11 +625,11 @@ function renderConnections() {
     const row = el("div", `conn ${c.status}`);
     const path = el("span", "path");
     path.append(el("b", "", c.a.short), el("span", "cell", `(${c.cellA.x},${c.cellA.y})`), el("span", "arrow", c.status==="ok" ? "⇄" : c.status==="half" ? "→" : "✕"),
-      el("b", "", c.b ? c.b.short : c.target), el("span", "cell", c.cellB ? `(${c.cellB.x},${c.cellB.y})` : c.b ? "戻り扉なし" : "未解決"));
+      el("b", "", c.b ? c.b.short : c.target), el("span", "cell", c.cellB ? `(${c.cellB.x},${c.cellB.y})` : c.b ? (c.status==="bad" ? "戻り扉が複数" : hasStart(c.b) ? "start に到着" : "戻り扉なし") : "未解決"));
     path.addEventListener("click", () => jumpTo(c.a.id, c.cellA));
     row.appendChild(path);
     if (c.cellB) { const b = el("button", "", "相手へ"); b.addEventListener("click", () => jumpTo(c.b.id, c.cellB)); row.appendChild(b); }
-    else if (c.b) { const b = el("button", "primary", "戻り扉"); b.addEventListener("click", () => { if (F.active !== c.a) activate(c.a); beginReturnDoor(c.a.id, c.b.id); }); row.appendChild(b); }
+    else if (c.b && c.status==="half") { const b = el("button", "primary", "戻り扉"); b.addEventListener("click", () => { if (F.active !== c.a) activate(c.a); beginReturnDoor(c.a.id, c.b.id); }); row.appendChild(b); }
     else row.appendChild(el("span"));
     ui.conns.appendChild(row);
   }
@@ -686,7 +709,7 @@ function computeLayout() {
   while (queue.length) {
     const a = queue.shift(), ab = boxes.get(a), pa = pos.get(a);
     for (const e of exitsOf(a)) {
-      const b = roomById(exitTarget(e.tag)); if (!b || pos.has(b)) continue;
+      const b = targetRoomOf(a, e.tag); if (!b || pos.has(b)) continue;
       if (b.pos) { pos.set(b, b.pos); queue.push(b); continue; }
       const d = cellWorld(e.position.x, e.position.y), bb = boxes.get(b);
       const ang = Math.atan2((d.y - ab.cy) * 1.6, d.x - ab.cx);
@@ -843,7 +866,12 @@ function onIdChange() {
   if (roomById(newId)) { alert(`id「${newId}」は別の部屋で使われています。`); els.id.value = oldId; return; }
   const refs = [];
   for (const r of F.floor.rooms) if (r !== F.active) for (const p of roomPoints(r)) if (exitTarget(p.tag)===oldId) refs.push(p);
-  if (refs.length && confirm(`他の部屋の ${refs.length} 個の扉が「${oldId}」を指しています。「${newId}」に書き換えますか？`)) for (const p of refs) p.tag = `exit,${newId}`;
+  if (refs.length && confirm(`他の部屋の ${refs.length} 個の扉が「${oldId}」を指しています。「${newId}」に書き換えますか？`)) {
+    const touched = new Set();
+    for (const r of F.floor.rooms) if (r !== F.active && refs.some(p => roomPoints(r).includes(p))) touched.add(r);
+    for (const r of touched) pushHistoryFor(r);
+    for (const p of refs) p.tag = `exit,${newId}`;
+  }
   F.active.id = newId;
   if (F.active.file && F.active.file.includes(oldId.replace(/^\d\d-/, ""))) { /* ファイル名はそのまま（ユーザーが右ペインで変更できる） */ }
   F.idAtFocus = newId;
@@ -885,6 +913,21 @@ function init() {
   ui.roomFile.addEventListener("change", () => { if (!inFloor()) return; F.active.file = ui.roomFile.value.trim() || roomFileName(F.active); ui.roomFile.value = F.active.file; saveFloor(); });
   els.id.addEventListener("focus", () => { F.idAtFocus = F.active?.id || ""; });
   els.id.addEventListener("change", onIdChange);
+
+  // 階層モードでは旧「JSON インポート」は現在の部屋の map / points だけを置き換える（id・名前・ファイル名は保持）
+  const baseImportPayload = importPayload;
+  importPayload = function (payload) {
+    if (!inFloor()) return baseImportPayload(payload);
+    const map = normalizeImportedMap(payload?.map);
+    const pts = normalizeImportedPoints(payload?.points, map[0].length, map.length);
+    const idNote = payload?.id !== undefined && String(payload.id) !== F.active.id ? `\nJSON の id「${payload.id}」は使いません（部屋 id は「${F.active.id}」のまま。変えるなら左の ID 欄で）。` : "";
+    if (!confirm(`読み込んだ JSON（${map[0].length}x${map.length}・ポイント ${pts.length} 個）で、部屋「${F.active.name}」の map とポイントを置き換えます。${idNote}\nよろしいですか？`)) { setStatus("インポートを中止しました。"); return; }
+    pushHistory();
+    state.sourceMap = map; state.points = pts; state.selections = null;
+    els.size.value = Math.max(map[0].length, map.length); els.cut.value = els.size.value;
+    applyRulesAndRender(); fitView();
+    setStatus(`${F.active.short} の map を置き換えました（${map[0].length}x${map.length}・ポイント ${pts.length} 個）。`);
+  };
 
   // 階層モードでは単体エクスポートも部屋の書式（type なし・id,size,map,points）で出す
   els.export.addEventListener("click", e => { if (inFloor()) { e.stopImmediatePropagation(); downloadActiveRoom(); } }, true);
