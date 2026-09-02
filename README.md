@@ -31,8 +31,8 @@ Unity（aiya-desire）の `Assets/Adventure/Data/Maps/` に置けます。
 
 ## データ
 
-- `floors/stage02/` — 第2階層の現行データ（aiya-desire `Assets/Adventure/Data/Maps/stage02*.json` のコピー）と
-  マニフェスト `floor.json`（部屋名・略称・ファイル名・タグ辞書）。
+- `floors/stage02/` — 第2階層の現行データ（aiya-desire `Assets/Adventure/Data/Maps/stage02*.json` のコピー。2026-09-02 からマップ v2 = 16 部屋）と
+  マニフェスト `floor.json`（部屋名・略称・ファイル名・タグ辞書・俯瞰図の配置 `pos`）。
 - 部屋 JSON の書式は Unity 側の契約どおり `{ id, size, map, points }`。無編集で書き出すと元ファイルとバイト一致します。
 - `floor.json` の `tags` は `"部屋id": [{ "tag": "...", "label": "..." }]`。`"*"` は全部屋共通。
 
