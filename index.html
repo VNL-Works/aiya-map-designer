@@ -137,6 +137,7 @@
       .topbar { grid-template-columns: 1fr; }
     }
   </style>
+  <link rel="stylesheet" href="floor.css">
 </head>
 <body>
 <div class="app">
@@ -166,6 +167,7 @@
           <button data-tool="pick"    title="カーソル下のタイルを選択">ピック</button>
           <button data-tool="point"    title="クリックでポイントを追加/削除。既存ポイントをドラッグで移動">ポイント</button>
           <button data-tool="select"  title="矩形選択 — Ctrl+C でコピー、Ctrl+V で貼り付け">選択</button>
+          <button data-tool="door"    title="階層モード: セルをクリックして他の部屋への扉を追加。相手部屋の戻り扉も続けて置ける">扉</button>
         </div>
         <div class="button-grid">
           <button id="undoBtn">元に戻す</button>
@@ -183,6 +185,14 @@
   </aside>
 
   <main>
+    <div class="room-strip" id="roomStrip" hidden>
+      <div class="room-tabs" id="roomTabs"></div>
+      <div class="floor-actions">
+        <span class="floor-name" id="floorName"></span>
+        <button id="toggleOverviewBtn" title="階層オーバービューの表示／非表示">俯瞰図</button>
+        <button class="primary" id="exportZipBtn" title="全部屋＋floor.json を zip で保存">zip 書き出し</button>
+      </div>
+    </div>
     <div class="topbar">
       <div class="status" id="status">準備完了。</div>
       <div class="button-row">
@@ -197,14 +207,70 @@
       <canvas id="canvas"></canvas>
       <div class="hover-chip" id="hoverChip">タイルなし</div>
       <div class="paste-banner" id="pasteBanner">📋 貼り付けモード — クリックで配置、Esc でキャンセル</div>
+      <div class="door-banner" id="doorBanner"></div>
+      <div class="floor-pop" id="floorPop"></div>
+      <div class="overview" id="overview" hidden>
+        <div class="ov-head">
+          <span class="ov-title">階層オーバービュー</span>
+          <button id="overviewResetBtn" title="部屋の位置を自動配置に戻す">自動配置</button>
+          <button id="overviewBigBtn" title="拡大表示">拡大</button>
+          <button id="overviewCloseBtn" title="閉じる（部屋ストリップの「俯瞰図」で再表示）">×</button>
+        </div>
+        <canvas id="overviewCanvas" title="クリックで部屋を切替、ドラッグで並べ替え"></canvas>
+      </div>
     </div>
   </main>
 
   <aside class="right">
     <div class="inner">
-      <section>
+      <section class="section floor-section" id="floorSection" hidden>
+        <div class="section-title">
+          階層
+          <span class="button-row">
+            <button class="tiny" id="loadSeedBtn" title="floors/stage02 の現行データを読み込む">第2階層</button>
+            <button class="tiny" id="loadFilesBtn" title="複数の JSON（＋floor.json）を選んで読み込む">ファイル</button>
+          </span>
+        </div>
+        <div class="floor-summary" id="issueSummary"></div>
+        <div class="issue-list" id="issueList"></div>
+        <p class="floor-tip">項目をクリックするとそのセルへ移動します。[ / ] キーで部屋を切替。</p>
+
+        <div class="section-title" style="margin-top:14px">接続</div>
+        <div class="conn-list" id="connList"></div>
+
+        <div class="section-title" style="margin-top:14px">この部屋</div>
+        <div class="room-meta">
+          <label>表示名 <input id="roomNameInput" type="text"></label>
+          <label>略称 <input id="roomShortInput" type="text" maxlength="10"></label>
+          <label style="grid-column:1/-1">ファイル名 <input id="roomFileInput" type="text"></label>
+        </div>
+        <div class="button-row">
+          <button class="tiny" id="exportRoomBtn" title="この部屋だけ JSON で保存">この部屋を保存</button>
+          <button class="tiny danger" id="deleteRoomBtn">この部屋を削除</button>
+        </div>
+        <div class="button-row" style="margin-top:12px">
+          <button class="tiny" id="closeFloorBtn" title="単一マップモードに戻る">階層を閉じる</button>
+        </div>
+      </section>
+
+      <section class="section floor-section" id="floorEmpty">
+        <div class="floor-empty" id="floorEmptyBox">
+          階層モード: 複数の部屋・扉のつながり・タグ辞書・検証・zip 書き出し
+          <div class="button-row" style="justify-content:center">
+            <button class="tiny primary" id="loadSeedBtn2">第2階層を読み込む</button>
+            <button class="tiny" id="loadFilesBtn2">ファイルから読み込む</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
         <div class="section-title">ポイント</div>
-        <label>新しいポイントタグ <input id="pointTagInput" type="text" value="point"></label>
+        <label>新しいポイントタグ <input id="pointTagInput" type="text" value="point" list="tagDatalist"></label>
+        <datalist id="tagDatalist"></datalist>
+        <div id="tagChipsWrap" hidden>
+          <div class="tag-chips" id="tagChips"></div>
+          <div class="chip-legend"><span><i style="background:#b8306b"></i>start</span><span><i style="background:#227166"></i>扉</span><span><i style="background:#6b5ca5"></i>壁メモ</span><span><i style="background:#cc4f2f"></i>トリガー</span><span><i style="background:#d59e24"></i>配置物</span><span>点線=未配置 ／ 黄=辞書に無い</span></div>
+        </div>
         <div class="button-grid">
           <button id="clearPointsBtn">ポイントクリア</button>
           <button id="exportCopyBtn">JSON をコピー</button>
@@ -242,7 +308,20 @@
   </div>
 </div>
 
+<div class="modal" id="overviewModal" aria-hidden="true">
+  <div class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="overviewBigTitle" style="width:min(1400px,calc(100vw - 28px))">
+    <div class="modal-head">
+      <div class="modal-title" id="overviewBigTitle">階層オーバービュー</div>
+      <span class="button-row"><button class="tiny" id="overviewBigResetBtn">自動配置</button><button id="closeOverviewBigBtn">閉じる</button></span>
+    </div>
+    <div class="modal-body" style="padding:0">
+      <canvas id="overviewBigCanvas" class="overview-big" title="クリックで部屋を切替、ドラッグで並べ替え"></canvas>
+    </div>
+  </div>
+</div>
+
 <input id="importInput"      type="file" accept="application/json,.json" hidden>
+<input id="floorFilesInput"  type="file" accept="application/json,.json" multiple hidden>
 <input id="importRulesInput" type="file" accept="application/json,.json" hidden>
 
 <script>
@@ -447,9 +526,9 @@ function matchesRule(map, x, y, rule) {
   return true;
 }
 
-function applyRules() {
-  let next = cloneMap(state.sourceMap);
-  for (const rawRule of state.rules) {
+function applyRulesTo(sourceMap, rules) {
+  let next = cloneMap(sourceMap);
+  for (const rawRule of rules) {
     const rule = normalizeRule(rawRule);
     if (!rule.enabled) continue;
     const pass = cloneMap(next);
@@ -458,14 +537,17 @@ function applyRules() {
         if (matchesRule(next, x, y, rule)) pass[y][x] = rule.output;
     next = pass;
   }
-  state.finalMap = next;
+  return next;
 }
+
+function applyRules() { state.finalMap = applyRulesTo(state.sourceMap, state.rules); }
 
 function applyRulesAndRender() {
   applyRules();
   saveLocal();
   renderPoints(); renderRules(); renderReadout(); updateStatus();
   scheduleDraw();
+  window.Floor?.onEditorChange();
 }
 
 function updateStatus() {
@@ -737,10 +819,12 @@ function draw() {
 
   // points
   for (const point of state.points) {
+    if (window.Floor?.active()) { window.Floor.drawPoint(point, ctx, tw); continue; }
     const p = gridToWorld(point.position.x, point.position.y);
     ctx.fillStyle = "#cc4f2f"; ctx.strokeStyle = "#22241f"; ctx.lineWidth = 2;
     ctx.beginPath(); ctx.arc(p.x, p.y + tw*0.55, tw*0.16, 0, Math.PI*2); ctx.fill(); ctx.stroke();
   }
+  window.Floor?.drawOverlay(ctx);
 
   ctx.restore();
 }
@@ -917,6 +1001,13 @@ function startPointer(event) {
   if (wantsPan) { els.canvas.classList.add("panning"); return; }
   if (!cell) return;
 
+  if (currentTool === "door") {
+    state.pointer = null;
+    try { els.canvas.releasePointerCapture(event.pointerId); } catch {}
+    window.Floor?.doorClick(cell, event);
+    return;
+  }
+
   if (currentTool === "select") {
     const newSel = { x1:cell.x, y1:cell.y, x2:cell.x, y2:cell.y };
     if (isSelectShortcut) {
@@ -960,7 +1051,7 @@ function movePointer(event) {
   // Update chip text whenever cell changes
   if (hoverChanged) {
     if (cell) {
-      els.hoverChip.textContent = `x ${cell.x}, y ${cell.y} | source ${tileLabel(tileAt(state.sourceMap,cell.x,cell.y))} | final ${tileLabel(tileAt(state.finalMap,cell.x,cell.y))}`;
+      els.hoverChip.textContent = `x ${cell.x}, y ${cell.y} | source ${tileLabel(tileAt(state.sourceMap,cell.x,cell.y))} | final ${tileLabel(tileAt(state.finalMap,cell.x,cell.y))}${window.Floor?.hoverExtra(cell) || ""}`;
     } else {
       els.hoverChip.textContent = "タイルなし";
     }
@@ -1021,8 +1112,11 @@ function endPointer(event) {
       updateStatus();
     }
     if (currentTool==="point" && state.pointer.activePointIndex >= 0 && !state.pointer.changed && cell.x===state.pointer.startCell.x && cell.y===state.pointer.startCell.y) {
-      state.points.splice(state.pointer.activePointIndex, 1);
-      state.pointer.changed = true;
+      const target = state.points[state.pointer.activePointIndex];
+      if (!window.Floor || window.Floor.beforeRemovePoint(target) !== false) {
+        state.points.splice(state.pointer.activePointIndex, 1);
+        state.pointer.changed = true;
+      }
     }
   }
   if (!state.pointer.changed && state.history.length && currentTool!=="select") state.history.pop();
@@ -1060,8 +1154,9 @@ function renderPoints() {
     const tag=document.createElement("input"); tag.value=point.tag;
     tag.addEventListener("input",()=>{ point.tag=tag.value; saveLocal(); });
     const rm=document.createElement("button"); rm.className="tiny danger"; rm.textContent="X";
-    rm.addEventListener("click",()=>{ pushHistory(); state.points.splice(i,1); applyRulesAndRender(); });
+    rm.addEventListener("click",()=>{ if (window.Floor && window.Floor.beforeRemovePoint(point)===false) return; pushHistory(); state.points.splice(i,1); applyRulesAndRender(); });
     row.append(pos,tag,rm); els.pointList.appendChild(row);
+    window.Floor?.decoratePointRow(row, point);
   });
 }
 
@@ -1148,14 +1243,16 @@ function findContentBounds(map, points) {
   return { minX:minX-1,minY:minY-1,maxX:maxX+1,maxY:maxY+1 };
 }
 
-function compressForExport() {
-  if (!state.finalMap.length) return { map:[],points:[],size:{x:0,y:0} };
-  const b=findContentBounds(state.finalMap,state.points);
+function compressMap(finalMap, srcPoints) {
+  if (!finalMap.length) return { map:[],points:[],size:{x:0,y:0} };
+  const b=findContentBounds(finalMap,srcPoints);
   const map=[];
-  for(let y=b.minY;y<=b.maxY;y++){ const row=[]; for(let x=b.minX;x<=b.maxX;x++) row.push(tileAt(state.finalMap,x,y)??-2); map.push(row); }
-  const points=state.points.filter(d=>d.position.x>=b.minX&&d.position.x<=b.maxX&&d.position.y>=b.minY&&d.position.y<=b.maxY).map(d=>({position:{x:d.position.x-b.minX,y:d.position.y-b.minY},tag:d.tag}));
+  for(let y=b.minY;y<=b.maxY;y++){ const row=[]; for(let x=b.minX;x<=b.maxX;x++) row.push(tileAt(finalMap,x,y)??-2); map.push(row); }
+  const points=srcPoints.filter(d=>d.position.x>=b.minX&&d.position.x<=b.maxX&&d.position.y>=b.minY&&d.position.y<=b.maxY).map(d=>({position:{x:d.position.x-b.minX,y:d.position.y-b.minY},tag:d.tag}));
   return { map, points, size:{x:b.maxX-b.minX+1,y:b.maxY-b.minY+1} };
 }
+
+function compressForExport() { return compressMap(state.finalMap, state.points); }
 
 function exportPayload() {
   const c=compressForExport();
@@ -1303,5 +1400,7 @@ async function boot() {
 
 boot();
 </script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" crossorigin="anonymous"></script>
+<script src="floor.js"></script>
 </body>
 </html>
